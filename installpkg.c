@@ -54,7 +54,9 @@ main(int argc, char *argv[])
 	for (i = 0; i < argc; i++) {
 		if (fflag == 0) {
 			if (collisions(prefix, argv[i]) != 0) {
-				fprintf(stderr, "aborting, use -f to override\n");
+				fprintf(stderr,
+					"aborting %s, use -f to override\n",
+					argv[i]);
 				exit(EXIT_FAILURE);
 			}
 		}
