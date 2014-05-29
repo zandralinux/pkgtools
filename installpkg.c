@@ -268,7 +268,7 @@ extract(const char *prefix, const char *f)
 		}
 		r = archive_write_header(out, entry);
 		if (r != ARCHIVE_OK) {
-			fprintf(stderr, "%s\n", archive_error_string(in));
+			fprintf(stderr, "%s\n", archive_error_string(out));
 		} else {
 			while (1) {
 				r = archive_read_data_block(in, &buf,
