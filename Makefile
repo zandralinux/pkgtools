@@ -8,6 +8,7 @@ LIB = \
 	strlcpy.o
 
 SRC = \
+	infopkg.c \
 	installpkg.c \
 	removepkg.c
 
