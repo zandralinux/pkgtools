@@ -60,16 +60,16 @@ main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	dir = opendir("var/pkg");
+	if (!dir) {
+		fprintf(stderr, "opendir %s: %s\n", "var/pkg",
+			strerror(errno));
+		return EXIT_FAILURE;
+	}
+
 	for (i = 0; i < argc; i++) {
 		strlcpy(filename, argv[i], sizeof(filename));
 		found = 0;
-
-		dir = opendir("var/pkg");
-		if (!dir) {
-			fprintf(stderr, "opendir %s: %s\n", "var/pkg",
-				strerror(errno));
-			return EXIT_FAILURE;
-		}
 
 		while ((dp = readdir(dir))) {
 			if (strcmp(dp->d_name, ".") == 0 ||
@@ -82,13 +82,16 @@ main(int argc, char *argv[])
 				break;
 			}
 		}
-
-		closedir(dir);
 		if (found == 0) {
 			fprintf(stderr, "package %s not installed\n", argv[i]);
 			return EXIT_FAILURE;
 		}
+
+		rewinddir(dir);
 	}
+
+	closedir(dir);
+
 	return EXIT_SUCCESS;
 }
 
