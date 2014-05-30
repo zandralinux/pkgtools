@@ -18,8 +18,8 @@ char *argv0;
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-E filename] [-p prefix]\n", argv0);
-	fprintf(stderr, "  -E	 Look for the package that contains the given filename(s)\n");
+	fprintf(stderr, "usage: %s [-O filename] [-p prefix]\n", argv0);
+	fprintf(stderr, "  -O	 Look for the package that owns the given filename(s)\n");
 	fprintf(stderr, "  -p	 Set the installation prefix\n");
 	exit(1);
 }
@@ -31,13 +31,13 @@ main(int argc, char *argv[])
 	struct dirent *dp;
 	char *prefix = "/";
 	char path[PATH_MAX];
-	int Eflag = 0;
+	int Oflag = 0;
 	int i;
 	int r;
 
 	ARGBEGIN {
-	case 'E':
-		Eflag = 1;
+	case 'O':
+		Oflag = 1;
 		break;
 	case 'p':
 		prefix = ARGF();
@@ -46,7 +46,7 @@ main(int argc, char *argv[])
 		usage();
 	} ARGEND;
 
-	if (Eflag == 0 || argc < 1)
+	if (Oflag == 0 || argc < 1)
 		usage();
 
 	r = chdir(prefix);
