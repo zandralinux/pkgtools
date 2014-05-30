@@ -18,7 +18,7 @@ char *argv0;
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-O filename] [-p prefix]\n", argv0);
+	fprintf(stderr, "usage: %s [-O filename...] [-p prefix]\n", argv0);
 	fprintf(stderr, "  -O	 Look for the package that owns the given filename(s)\n");
 	fprintf(stderr, "  -p	 Set the installation prefix\n");
 	exit(1);
