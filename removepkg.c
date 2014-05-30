@@ -140,7 +140,7 @@ removepkg(const char *f)
 
 		r = lstat(buf, &sb);
 		if (r < 0) {
-			fprintf(stderr, "stat %s: %s\n",
+			fprintf(stderr, "lstat %s: %s\n",
 				buf, strerror(errno));
 			continue;
 		}

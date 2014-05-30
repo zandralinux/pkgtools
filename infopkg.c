@@ -94,7 +94,7 @@ ownpkg(const char *pkg, const char *f)
 
 	r = lstat(filename, &sb1);
 	if (r < 0) {
-		fprintf(stderr, "stat %s: %s\n", f, strerror(errno));
+		fprintf(stderr, "lstat %s: %s\n", f, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 	if (S_ISREG(sb1.st_mode) == 0) {
@@ -124,7 +124,7 @@ ownpkg(const char *pkg, const char *f)
 
 		r = lstat(buf, &sb2);
 		if (r < 0) {
-			fprintf(stderr, "stat %s: %s\n",
+			fprintf(stderr, "lstat %s: %s\n",
 				buf, strerror(errno));
 			continue;
 		}

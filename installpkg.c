@@ -198,7 +198,7 @@ collisions(const char *prefix, const char *f)
 		if (access(archive_entry_pathname(entry), F_OK) == 0) {
 			r = stat(archive_entry_pathname(entry), &sb);
 			if (r < 0) {
-				fprintf(stderr, "stat %s: %s\n",
+				fprintf(stderr, "lstat %s: %s\n",
 					archive_entry_pathname(entry),
 					strerror(errno));
 				exit(EXIT_FAILURE);
