@@ -145,13 +145,13 @@ removepkg(const char *f)
 			continue;
 		}
 
-		if (S_ISDIR(sb.st_mode)) {
+		if (S_ISDIR(sb.st_mode) == 1) {
 			if (fflag == 0)
 				printf("ignoring directory %s\n", buf);
 			continue;
 		}
 
-		if (S_ISLNK(sb.st_mode)) {
+		if (S_ISLNK(sb.st_mode) == 1) {
 			if (fflag == 0) {
 				printf("ignoring link %s\n", buf);
 				continue;
