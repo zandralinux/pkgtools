@@ -19,11 +19,13 @@ static int collisions(const char *, const char *);
 static int extract(const char *, const char *);
 
 char *argv0;
+static int vflag = 0;
 
 static void
 usage(void)
 {
 	fprintf(stderr, "usage: %s [-f] [-p prefix] pkg...\n", argv0);
+	fprintf(stderr, "  -v    Enable verbose output\n");
 	fprintf(stderr, "  -f    Override filesystem checks and force installation\n");
 	fprintf(stderr, "  -p    Set the installation prefix\n");
 	exit(EXIT_FAILURE);
@@ -37,6 +39,9 @@ main(int argc, char *argv[])
 	int fflag = 0;
 
 	ARGBEGIN {
+	case 'v':
+		vflag = 1;
+		break;
 	case 'f':
 		fflag = 1;
 		break;
@@ -52,6 +57,8 @@ main(int argc, char *argv[])
 
 	checkdb(prefix);
 	for (i = 0; i < argc; i++) {
+		if (vflag == 1)
+			printf("installing %s\n", argv[i]);
 		if (fflag == 0) {
 			if (collisions(prefix, argv[i]) != 0) {
 				fprintf(stderr,
@@ -141,10 +148,14 @@ updatedb(const char *prefix, const char *f)
 			fprintf(stderr, "%s\n", archive_error_string(in));
 			exit(EXIT_FAILURE);
 		}
+		if (vflag == 1)
+			printf("installed %s\n", archive_entry_pathname(entry));
 		fputs(archive_entry_pathname(entry), fp);
 		fputc('\n', fp);
 	}
 
+	if (vflag == 1)
+		printf("updating %s\n", path);
 	fflush(fp);
 	r = fsync(fileno(fp));
 	if (r < 0)
