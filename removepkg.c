@@ -26,7 +26,7 @@ usage(void)
 {
 	fprintf(stderr, "usage: %s [-v] [-f] [-p prefix] pkg...\n", argv0);
 	fprintf(stderr, "  -v    Enable verbose output\n");
-	fprintf(stderr, "  -f    Force the removal of empty directories and symlinks (DANGEROUS)\n");
+	fprintf(stderr, "  -f    Force the removal of empty directories and symlinks\n");
 	fprintf(stderr, "  -p    Set the installation prefix\n");
 	exit(EXIT_FAILURE);
 }
