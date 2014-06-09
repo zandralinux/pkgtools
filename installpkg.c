@@ -129,9 +129,18 @@ updatedb(const char *prefix, const char *f)
 		exit(EXIT_FAILURE);
 	}
 
-	strlcpy(path, "var/pkg/", sizeof(path));
-	strlcpy(filename, f, sizeof(filename));
-	strlcat(path, basename(filename), sizeof(path));
+	if (strlcpy(path, "var/pkg/", sizeof(path)) >= sizeof(path)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
+	if (strlcpy(filename, f, sizeof(filename)) >= sizeof(filename)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
+	if (strlcat(path, basename(filename), sizeof(path)) >= sizeof(path)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
 
 	fp = fopen(path, "w");
 	if (!fp) {

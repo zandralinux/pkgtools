@@ -74,7 +74,10 @@ main(int argc, char *argv[])
 	}
 
 	for (i = 0; i < argc; i++) {
-		strlcpy(filename, argv[i], sizeof(filename));
+		if (strlcpy(filename, argv[i], sizeof(filename)) >= sizeof(filename)) {
+			fprintf(stderr, "path too long\n");
+			exit(EXIT_FAILURE);
+		}
 		found = 0;
 
 		while ((dp = readdir(dir))) {
@@ -126,8 +129,14 @@ numrefs(const char *f)
 		    strcmp(dp->d_name, "..") == 0)
 			continue;
 
-		strlcpy(path, "var/pkg/", sizeof(path));
-		strlcat(path, dp->d_name, sizeof(path));
+		if (strlcpy(path, "var/pkg/", sizeof(path)) >= sizeof(path)) {
+			fprintf(stderr, "path too long\n");
+			exit(EXIT_FAILURE);
+		}
+		if (strlcat(path, dp->d_name, sizeof(path)) >= sizeof(path)) {
+			fprintf(stderr, "path too long\n");
+			exit(EXIT_FAILURE);
+		}
 
 		fp = fopen(path, "r");
 		if (!fp) {
@@ -183,9 +192,18 @@ removepkg(const char *f)
 	char path[PATH_MAX], filename[PATH_MAX];
 	int r;
 
-	strlcpy(path, "var/pkg/", sizeof(path));
-	strlcpy(filename, f, sizeof(filename));
-	strlcat(path, basename(filename), sizeof(path));
+	if (strlcpy(path, "var/pkg/", sizeof(path)) >= sizeof(path)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
+	if (strlcpy(filename, f, sizeof(filename)) >= sizeof(filename)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
+	if (strlcat(path, basename(filename), sizeof(path)) >= sizeof(path)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
 
 	fp = fopen(path, "r");
 	if (!fp) {

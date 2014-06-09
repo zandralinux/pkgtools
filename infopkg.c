@@ -68,7 +68,10 @@ main(int argc, char *argv[])
 			if (strcmp(dp->d_name, ".") == 0 ||
 			    strcmp(dp->d_name, "..") == 0)
 				continue;
-			strlcpy(path, dp->d_name, sizeof(path));
+			if (strlcpy(path, dp->d_name, sizeof(path)) >= sizeof(path)) {
+				fprintf(stderr, "path too long\n");
+				exit(EXIT_FAILURE);
+			}
 			ownpkg(basename(path), argv[i]);
 		}
 		rewinddir(dir);
@@ -90,7 +93,10 @@ ownpkg(const char *pkg, const char *f)
 
 	for (; *f == '/'; f++)
 		;
-	strlcpy(filename, f, sizeof(filename));
+	if (strlcpy(filename, f, sizeof(filename)) >= sizeof(filename)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
 
 	r = lstat(filename, &sb1);
 	if (r < 0) {
@@ -102,8 +108,14 @@ ownpkg(const char *pkg, const char *f)
 		exit(EXIT_FAILURE);
 	}
 
-	strlcpy(path, "var/pkg/", sizeof(path));
-	strlcat(path, pkg, sizeof(path));
+	if (strlcpy(path, "var/pkg/", sizeof(path)) >= sizeof(path)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
+	if (strlcat(path, pkg, sizeof(path)) >= sizeof(path)) {
+		fprintf(stderr, "path too long\n");
+		exit(EXIT_FAILURE);
+	}
 
 	fp = fopen(path, "r");
 	if (!fp) {
