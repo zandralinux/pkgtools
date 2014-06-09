@@ -17,12 +17,14 @@ static int rmemptydir(const char *, const struct stat *, int, struct FTW *);
 static int removepkg(const char *);
 
 char *argv0;
+static int vflag;
 static int fflag;
 
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-f] [-p prefix] pkg...\n", argv0);
+	fprintf(stderr, "usage: %s [-v] [-f] [-p prefix] pkg...\n", argv0);
+	fprintf(stderr, "  -v    Enable verbose output\n");
 	fprintf(stderr, "  -f    Force the removal of empty directories and symlinks\n");
 	fprintf(stderr, "  -p    Set the installation prefix\n");
 	exit(EXIT_FAILURE);
@@ -40,6 +42,9 @@ main(int argc, char *argv[])
 	int i;
 
 	ARGBEGIN {
+	case 'v':
+		vflag = 1;
+		break;
 	case 'f':
 		fflag = 1;
 		break;
@@ -76,6 +81,8 @@ main(int argc, char *argv[])
 			    strcmp(dp->d_name, "..") == 0)
 				continue;
 			if (strcmp(dp->d_name, basename(filename)) == 0) {
+				if (vflag == 1)
+					printf("removing %s\n", argv[i]);
 				if (removepkg(argv[i]) != 0)
 					return EXIT_FAILURE;
 				printf("removed %s\n", argv[i]);
@@ -103,8 +110,11 @@ rmemptydir(const char *f, const struct stat *sb, int typeflag,
 	(void) sb;
 	(void) ftwbuf;
 
-	if (typeflag == FTW_DP)
+	if (typeflag == FTW_DP) {
+		if (vflag == 1)
+			printf("removing %s\n", f);
 		rmdir(f);
+	}
 	return 0;
 }
 
@@ -159,6 +169,8 @@ removepkg(const char *f)
 			}
 		}
 
+		if (vflag == 1)
+			printf("removing %s\n", buf);
 		r = remove(buf);
 		if (r < 0) {
 			fprintf(stderr, "remove %s: %s\n", buf,
@@ -192,6 +204,8 @@ removepkg(const char *f)
 
 	fclose(fp);
 
+	if (vflag == 1)
+		printf("removing %s\n", path);
 	/* nuke db entry for this package */
 	r = remove(path);
 	if (r < 0) {
