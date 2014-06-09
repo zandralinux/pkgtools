@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include "util.h"
 
+static int numrefs(const char *);
 static int rmemptydir(const char *, const struct stat *, int, struct FTW *);
 static int removepkg(const char *);
 
@@ -104,6 +105,61 @@ main(int argc, char *argv[])
 }
 
 static int
+numrefs(const char *f)
+{
+	DIR *dir;
+	struct dirent *dp;
+	FILE *fp;
+	char path[PATH_MAX];
+	char buf[BUFSIZ], *p;
+	int refs = 0;
+
+	dir = opendir("var/pkg");
+	if (!dir) {
+		fprintf(stderr, "opendir %s: %s\n", "var/pkg",
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	while ((dp = readdir(dir))) {
+		if (strcmp(dp->d_name, ".") == 0 ||
+		    strcmp(dp->d_name, "..") == 0)
+			continue;
+
+		strlcpy(path, "var/pkg/", sizeof(path));
+		strlcat(path, dp->d_name, sizeof(path));
+
+		fp = fopen(path, "r");
+		if (!fp) {
+			fprintf(stderr, "fopen %s: %s\n", path,
+				strerror(errno));
+			exit(EXIT_FAILURE);
+		}
+
+		while (fgets(buf, sizeof(buf), fp)) {
+			p = strrchr(buf, '\n');
+			if (p)
+				*p = '\0';
+			if (buf[0] == '\0')
+				continue;
+			if (strcmp(buf, f) == 0)
+				refs++;
+		}
+		if (ferror(fp)) {
+			fprintf(stderr, "I/O error while processing %s\n", path);
+			fclose(fp);
+			return 1;
+		}
+
+		fclose(fp);
+	}
+
+	closedir(dir);
+
+	return refs;
+}
+
+static int
 rmemptydir(const char *f, const struct stat *sb, int typeflag,
 	   struct FTW *ftwbuf)
 {
@@ -192,6 +248,8 @@ removepkg(const char *f)
 			if (p)
 				*p = '\0';
 			if (buf[0] == '\0')
+				continue;
+			if (numrefs(buf) > 1)
 				continue;
 			nftw(buf, rmemptydir, 1, FTW_DEPTH);
 		}
