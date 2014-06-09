@@ -78,6 +78,7 @@ main(int argc, char *argv[])
 			if (strcmp(dp->d_name, basename(filename)) == 0) {
 				if (removepkg(argv[i]) != 0)
 					return EXIT_FAILURE;
+				printf("removed %s\n", argv[i]);
 				found = 1;
 				break;
 			}
