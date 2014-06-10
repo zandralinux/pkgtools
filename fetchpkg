@@ -1,6 +1,6 @@
 #!/bin/sh
 
-while read pkg; do
+while read -r pkg; do
 	filename=$(echo $(basename "$pkg") | sed 's/%23/#/')
 	curl "$pkg" > "$filename"
 done

@@ -16,7 +16,7 @@ if test -z "$1"; then
 	usage
 fi
 
-curl -s "$mirror/PACKAGES" | while read pkg; do
+curl -s "$mirror/PACKAGES" | while read -r pkg; do
 	for i in "$@"; do
 		echo "$pkg" | grep -q "$i"
 		if test "$?" -eq 0; then
