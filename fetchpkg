@@ -1,0 +1,5 @@
+#!/bin/sh
+
+cat /dev/stdin | while read pkg; do
+	curl -O -J "$pkg"
+done

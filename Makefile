@@ -13,6 +13,7 @@ SRC = \
 	removepkg.c
 
 SHPROG = \
+	fetchpkg \
 	searchpkg
 
 OBJ = $(SRC:.c=.o) $(LIB)
