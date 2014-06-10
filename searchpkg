@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # To list all packages in the mirror try searchpkg "\.tgz$"
-# To download packages try searchpkg pkg... | xargs wget
+# To download packages try searchpkg pkg... | fetchpkg
 
 release=0.0
 arch=x86_64
