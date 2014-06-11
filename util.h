@@ -6,6 +6,9 @@
 
 extern char *argv0;
 
+int lockdb(void);
+void unlockdb(int);
+
 #undef strlcat
 size_t strlcat(char *, const char *, size_t);
 #undef strlcpy

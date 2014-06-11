@@ -32,6 +32,7 @@ main(int argc, char *argv[])
 	char *prefix = "/";
 	char path[PATH_MAX];
 	int Oflag = 0;
+	int lockfd;
 	int i;
 	int r;
 
@@ -56,6 +57,8 @@ main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	lockfd = lockdb();
+
 	dir = opendir("var/pkg");
 	if (!dir) {
 		fprintf(stderr, "opendir %s: %s\n", "var/pkg",
@@ -78,6 +81,8 @@ main(int argc, char *argv[])
 	}
 
 	closedir(dir);
+
+	unlockdb(lockfd);
 
 	return EXIT_SUCCESS;
 }

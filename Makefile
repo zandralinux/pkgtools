@@ -4,6 +4,7 @@ include config.mk
 .SUFFIXES: .c .o
 
 LIB = \
+	lock.o \
 	strlcat.o \
 	strlcpy.o
 

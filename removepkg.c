@@ -38,6 +38,7 @@ main(int argc, char *argv[])
 	struct dirent *dp;
 	char filename[PATH_MAX];
 	char *prefix = "/";
+	int lockfd;
 	int found = 0;
 	int r;
 	int i;
@@ -65,6 +66,8 @@ main(int argc, char *argv[])
 			strerror(errno));
 		return EXIT_FAILURE;
 	}
+
+	lockfd = lockdb();
 
 	dir = opendir("var/pkg");
 	if (!dir) {
@@ -103,6 +106,8 @@ main(int argc, char *argv[])
 	}
 
 	closedir(dir);
+
+	unlockdb(lockfd);
 
 	return EXIT_SUCCESS;
 }

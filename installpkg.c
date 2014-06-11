@@ -34,9 +34,12 @@ usage(void)
 int
 main(int argc, char *argv[])
 {
+	int r;
 	int i;
+	char cwd[PATH_MAX];
 	char *prefix = "/";
 	int fflag = 0;
+	int lockfd;
 
 	ARGBEGIN {
 	case 'v':
@@ -55,6 +58,24 @@ main(int argc, char *argv[])
 	if (argc < 1)
 		usage();
 
+	getcwd(cwd, sizeof(cwd));
+
+	r = chdir(prefix);
+	if (r < 0) {
+		fprintf(stderr, "chdir %s: %s\n", prefix,
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	lockfd = lockdb();
+
+	r = chdir(cwd);
+	if (r < 0) {
+		fprintf(stderr, "chdir %s: %s\n", prefix,
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
 	checkdb(prefix);
 	for (i = 0; i < argc; i++) {
 		if (vflag == 1)
@@ -71,6 +92,16 @@ main(int argc, char *argv[])
 		extract(prefix, argv[i]);
 		printf("installed %s\n", argv[i]);
 	}
+
+	r = chdir(prefix);
+	if (r < 0) {
+		fprintf(stderr, "chdir %s: %s\n", prefix,
+			strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	unlockdb(lockfd);
+
 	return EXIT_SUCCESS;
 }
 
