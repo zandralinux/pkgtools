@@ -14,8 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include "util.h"
 
 /*
@@ -44,4 +46,17 @@ strlcpy(char *dst, const char *src, size_t siz)
                         ;
         }
         return(s - src - 1);    /* count does not include NUL */
+}
+
+size_t
+estrlcpy(char *dst, const char *src, size_t siz)
+{
+	size_t r;
+
+	r = strlcpy(dst, src, siz);
+	if (r >= siz) {
+		fprintf(stderr, "destination buffer too small\n");
+		exit(EXIT_FAILURE);
+	}
+	return r;
 }

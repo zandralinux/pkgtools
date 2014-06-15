@@ -14,8 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include "util.h"
 
 /*
@@ -48,4 +50,17 @@ strlcat(char *dst, const char *src, size_t siz)
         }
         *d = '\0';
         return(dlen + (s - src));       /* count does not include NUL */
+}
+
+size_t
+estrlcat(char *dst, const char *src, size_t siz)
+{
+	size_t r;
+
+	r = strlcat(dst, src, siz);
+	if (r >= siz) {
+		fprintf(stderr, "destination buffer too small\n");
+		exit(EXIT_FAILURE);
+	}
+	return r;
 }

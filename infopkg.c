@@ -1,7 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-#include <dirent.h>
 #include <errno.h>
-#include <libgen.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,9 +7,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "db.h"
 #include "util.h"
 
-static void ownpkg(const char *, const char *);
+static int ownpkg(struct db *, struct pkg *, void *);
 
 char *argv0;
 
@@ -27,10 +26,8 @@ usage(void)
 int
 main(int argc, char *argv[])
 {
-	DIR *dir;
-	struct dirent *dp;
+	struct db *db;
 	char *prefix = "/";
-	char path[PATH_MAX];
 	int Oflag = 0;
 	int i;
 	int r;
@@ -49,110 +46,56 @@ main(int argc, char *argv[])
 	if (Oflag == 0 || argc < 1)
 		usage();
 
-	r = chdir(prefix);
-	if (r < 0) {
-		fprintf(stderr, "chdir %s: %s\n", prefix,
-			strerror(errno));
-		return EXIT_FAILURE;
-	}
-
-	lockdb();
-
-	dir = opendir("var/pkg");
-	if (!dir) {
-		fprintf(stderr, "opendir %s: %s\n", "var/pkg",
-			strerror(errno));
-		return EXIT_FAILURE;
-	}
+	db = dbinit(prefix);
+	if (!db)
+		exit(EXIT_FAILURE);
+	r = dbload(db);
+	if (r < 0)
+		exit(EXIT_FAILURE);
 
 	for (i = 0; i < argc; i++) {
-		while ((dp = readdir(dir))) {
-			if (strcmp(dp->d_name, ".") == 0 ||
-			    strcmp(dp->d_name, "..") == 0)
-				continue;
-			if (strlcpy(path, dp->d_name, sizeof(path)) >= sizeof(path)) {
-				fprintf(stderr, "path too long\n");
-				exit(EXIT_FAILURE);
-			}
-			ownpkg(basename(path), argv[i]);
-		}
-		rewinddir(dir);
+		r = dbwalk(db, ownpkg, argv[i]);
+		if (r < 0)
+			exit(EXIT_FAILURE);
 	}
 
-	closedir(dir);
+	dbfree(db);
 
 	return EXIT_SUCCESS;
 }
 
-static void
-ownpkg(const char *pkg, const char *f)
+static int
+ownpkg(struct db *db, struct pkg *pkg, void *file)
 {
+	struct pkgentry *pe;
 	struct stat sb1, sb2;
-	char buf[BUFSIZ], *p;
-	char path[PATH_MAX], filename[PATH_MAX];
-	FILE *fp;
+	char path[PATH_MAX];
 	int r;
 
-	for (; *f == '/'; f++)
-		;
-	if (strlcpy(filename, f, sizeof(filename)) >= sizeof(filename)) {
-		fprintf(stderr, "path too long\n");
-		exit(EXIT_FAILURE);
-	}
+	realpath(file, path);
 
-	r = lstat(filename, &sb1);
+	r = lstat(path, &sb1);
 	if (r < 0) {
-		fprintf(stderr, "lstat %s: %s\n", f, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-	if (S_ISREG(sb1.st_mode) == 0) {
-		fprintf(stderr, "%s is not a regular file\n", filename);
+		fprintf(stderr, "lstat %s: %s\n", path, strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
-	if (strlcpy(path, "var/pkg/", sizeof(path)) >= sizeof(path)) {
-		fprintf(stderr, "path too long\n");
+	if (dbpkgload(db, pkg) < 0)
 		exit(EXIT_FAILURE);
-	}
-	if (strlcat(path, pkg, sizeof(path)) >= sizeof(path)) {
-		fprintf(stderr, "path too long\n");
-		exit(EXIT_FAILURE);
-	}
 
-	fp = fopen(path, "r");
-	if (!fp) {
-		fprintf(stderr, "fopen %s: %s\n", path,
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	while (fgets(buf, sizeof(buf), fp)) {
-		p = strrchr(buf, '\n');
-		if (p)
-			*p = '\0';
-
-		if (buf[0] == '\0') {
-			fprintf(stderr, "nil file entry in %s, skipping\n", path);
-			continue;
-		}
-
-		r = lstat(buf, &sb2);
+	for (pe = pkg->head; pe; pe = pe->next) {
+		r = lstat(pe->path, &sb2);
 		if (r < 0) {
 			fprintf(stderr, "lstat %s: %s\n",
-				buf, strerror(errno));
+				pe->path, strerror(errno));
 			continue;
 		}
-
 		if (sb1.st_dev == sb2.st_dev &&
 		    sb1.st_ino == sb2.st_ino) {
-			printf("/%s is owned by %s\n", filename, pkg);
+			printf("%s is owned by %s\n", path, pkg->name);
 			break;
 		}
 	}
-	if (ferror(fp)) {
-		fprintf(stderr, "I/O error while processing %s\n", path);
-		exit(EXIT_FAILURE);
-	}
 
-	fclose(fp);
+	return 0;
 }
