@@ -39,7 +39,6 @@ main(int argc, char *argv[])
 	char cwd[PATH_MAX];
 	char *prefix = "/";
 	int fflag = 0;
-	int lockfd;
 
 	ARGBEGIN {
 	case 'v':
@@ -67,7 +66,7 @@ main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	lockfd = lockdb();
+	lockdb();
 
 	r = chdir(cwd);
 	if (r < 0) {
@@ -99,8 +98,6 @@ main(int argc, char *argv[])
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-
-	unlockdb(lockfd);
 
 	return EXIT_SUCCESS;
 }

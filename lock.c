@@ -1,65 +1,32 @@
 /* See LICENSE file for copyright and license details. */
+#include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
+#include <sys/types.h>
 #include <unistd.h>
 
-#define LOCKPATH "var/pkg/.lock"
-
 /* lock the package dabatase - assumes cwd is the root prefix */
-int
+void
 lockdb(void)
 {
-	struct flock fl;
-	int r;
-	int fd;
+	DIR *dir;
 
-	fl.l_type = F_WRLCK;
-	fl.l_whence = SEEK_SET;
-	fl.l_start = 0;
-	fl.l_len = 0;
-	fl.l_pid = getpid();
-
-	fd = open(LOCKPATH, O_WRONLY | O_CREAT, 0600);
-	if (fd < 0) {
-		fprintf(stderr, "failed to create lockfile: %s\n",
+	dir = opendir("var/pkg");
+	if (!dir) {
+		fprintf(stderr, "opendir %s: %s\n", "var/pkg",
 			strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 
-	r = fcntl(fd, F_SETLKW, &fl);
-	if (r < 0) {
-		fprintf(stderr, "failed to obtain lock: %s\n",
-			strerror(errno));
+	if (flock(dirfd(dir), LOCK_EX | LOCK_NB) < 0) {
+		if (errno == EWOULDBLOCK)
+			fprintf(stderr, "package db already locked\n");
+		else
+			fprintf(stderr, "flock %s: %s\n", "var/pkg",
+				strerror(errno));
 		exit(EXIT_FAILURE);
 	}
-
-	return fd;
-}
-
-/* unlock the package dabatase - assumes cwd is the root prefix */
-void
-unlockdb(int fd)
-{
-	struct flock fl;
-	int r;
-
-	fl.l_type = F_UNLCK;
-	fl.l_whence = SEEK_SET;
-	fl.l_start = 0;
-	fl.l_len = 0;
-	fl.l_pid = getpid();
-
-	r = fcntl(fd, F_SETLKW, &fl);
-	if (r < 0) {
-		fprintf(stderr, "failed to clear lock: %s\n",
-			strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	close(fd);
-
-	unlink(LOCKPATH);
 }
