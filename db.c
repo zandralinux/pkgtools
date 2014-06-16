@@ -208,7 +208,7 @@ dbadd(struct db *db, const char *file)
 	}
 
 	if (vflag == 1)
-		printf("updating %s\n", path);
+		printf("adding %s\n", path);
 	fflush(fp);
 	if (fsync(fileno(fp)) < 0)
 		weprintf("fsync %s:", path);
