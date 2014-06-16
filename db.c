@@ -389,8 +389,9 @@ dbpkginstall(struct db *db, const char *file)
 			return -1;
 		}
 		flags = ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_PERM |
-			ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_UNLINK |
-			ARCHIVE_EXTRACT_SECURE_NODOTDOT;
+			ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_SECURE_NODOTDOT;
+		if (fflag == 1)
+			flags |= ARCHIVE_EXTRACT_UNLINK;
 		r = archive_read_extract(ar, entry, flags);
 		if (r != ARCHIVE_OK && r != ARCHIVE_WARN)
 			weprintf("archive_read_extract %s: %s\n",
