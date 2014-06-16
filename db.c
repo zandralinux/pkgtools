@@ -535,6 +535,7 @@ dbrm(struct db *db, const char *name)
 					strerror(errno));
 				return -1;
 			}
+			sync();
 			break;
 		}
 	}
