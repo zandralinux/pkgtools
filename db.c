@@ -169,8 +169,10 @@ dbfscollide(struct db *db, const char *file)
 int
 dbadd(struct db *db, const char *file)
 {
-	char pkgpath[PATH_MAX], tmppath[PATH_MAX];
+	char pkgpath[PATH_MAX];
 	char path[PATH_MAX];
+	char tmp[PATH_MAX];
+	char *name, *version;
 	FILE *fp;
 	struct archive *ar;
 	struct archive_entry *entry;
@@ -180,11 +182,6 @@ dbadd(struct db *db, const char *file)
 		weprintf("realpath %s:", file);
 		return -1;
 	}
-
-	estrlcpy(tmppath, pkgpath, sizeof(tmppath));
-	estrlcpy(path, db->path, sizeof(path));
-	estrlcat(path, "/", sizeof(path));
-	estrlcat(path, basename(tmppath), sizeof(path));
 
 	ar = archive_read_new();
 
@@ -199,8 +196,20 @@ dbadd(struct db *db, const char *file)
 		return -1;
 	}
 
+	parsename(pkgpath, &name);
+	parseversion(pkgpath, &version);
+	estrlcpy(path, db->path, sizeof(path));
+	estrlcat(path, "/", sizeof(path));
+	estrlcat(path, name, sizeof(path));
+	if (version) {
+		estrlcat(path, "#", sizeof(path));
+		estrlcat(path, version, sizeof(path));
+	}
+
 	if (!(fp = fopen(path, "w"))) {
 		weprintf("fopen %s:", path);
+		free(name);
+		free(version);
 		return -1;
 	}
 
@@ -211,16 +220,24 @@ dbadd(struct db *db, const char *file)
 		if (r != ARCHIVE_OK) {
 			weprintf("archive_read_next_header: %s\n",
 				 archive_error_string(ar));
+			free(name);
+			free(version);
 			return -1;
 		}
-		estrlcpy(tmppath, db->prefix, sizeof(tmppath));
-		estrlcat(tmppath, "/", sizeof(tmppath));
-		estrlcat(tmppath, archive_entry_pathname(entry), sizeof(tmppath));
+
+		estrlcpy(tmp, db->prefix, sizeof(tmp));
+		estrlcat(tmp, "/", sizeof(tmp));
+		estrlcat(tmp, archive_entry_pathname(entry),
+			 sizeof(tmp));
+
 		if (vflag == 1)
-			printf("installed %s\n", tmppath);
+			printf("installed %s\n", tmp);
 		fputs(archive_entry_pathname(entry), fp);
 		fputc('\n', fp);
 	}
+
+	free(name);
+	free(version);
 
 	if (vflag == 1)
 		printf("adding %s\n", path);
@@ -311,9 +328,9 @@ dbdump(struct db *db)
 int
 dbpkgload(struct db *db, struct pkg *pkg)
 {
+	char path[PATH_MAX];
 	struct pkgentry *pe;
 	FILE *fp;
-	char path[PATH_MAX];
 	char *buf = NULL;
 	size_t sz = 0;
 	ssize_t len;
@@ -324,6 +341,10 @@ dbpkgload(struct db *db, struct pkg *pkg)
 	estrlcpy(path, db->path, sizeof(path));
 	estrlcat(path, "/", sizeof(path));
 	estrlcat(path, pkg->name, sizeof(path));
+	if (pkg->version) {
+		estrlcat(path, "#", sizeof(path));
+		estrlcat(path, pkg->version, sizeof(path));
+	}
 
 	if (!(fp = fopen(path, "r"))) {
 		weprintf("fopen %s:", pkg->name);
@@ -443,27 +464,23 @@ rmemptydir(const char *f, const struct stat *sb, int typeflag,
 
 /* Remove the package entries for `file' */
 int
-dbpkgremove(struct db *db, const char *file)
+dbpkgremove(struct db *db, const char *name)
 {
 	struct dbentry *de;
 	struct pkg *pkg;
 	struct pkgentry *pe;
 	struct stat sb;
-	char tmppath[PATH_MAX], *p;
-
-	estrlcpy(tmppath, file, sizeof(tmppath));
-	p = basename(tmppath);
 
 	for (de = db->head; de; de = de->next) {
 		if (de->deleted == 1)
 			continue;
-		if (strcmp(de->pkg->name, p) == 0) {
+		if (strcmp(de->pkg->name, name) == 0) {
 			pkg = de->pkg;
 			break;
 		}
 	}
 	if (!de) {
-		weprintf("can't find %s in pkg db\n", p);
+		weprintf("can't find %s in pkg db\n", name);
 		return -1;
 	}
 
@@ -511,18 +528,21 @@ dbpkgremove(struct db *db, const char *file)
 
 /* Physically unlink the db entry for `file' */
 int
-dbrm(struct db *db, const char *file)
+dbrm(struct db *db, const char *name)
 {
 	struct dbentry *de;
-	char path[PATH_MAX], tmpname[PATH_MAX], *p;
+	char path[PATH_MAX];
 
-	estrlcpy(tmpname, file, sizeof(tmpname));
-	p = basename(tmpname);
 	for (de = db->head; de; de = de->next) {
-		if (de->deleted == 1 && strcmp(de->pkg->name, p) == 0) {
+		if (de->deleted == 1 && strcmp(de->pkg->name, name) == 0) {
 			estrlcpy(path, db->path, sizeof(path));
 			estrlcat(path, "/", sizeof(path));
 			estrlcat(path, de->pkg->name, sizeof(path));
+			if (de->pkg->version) {
+				estrlcat(path, "#", sizeof(path));
+				estrlcat(path, de->pkg->version,
+					 sizeof(path));
+			}
 			if (vflag == 1)
 				printf("removing %s\n", path);
 			if (remove(path) < 0) {
@@ -538,23 +558,17 @@ dbrm(struct db *db, const char *file)
 
 /* Create a new package instance */
 struct pkg *
-pkgnew(char *name)
+pkgnew(char *filename)
 {
 	struct pkg *pkg;
-	char version[PATH_MAX], *p, *q;
+	char tmp[PATH_MAX], *p;
 
+	estrlcpy(tmp, filename, sizeof(tmp));
+	p = strchr(tmp, '#');
+	if (p)
+		*p = '\0';
 	pkg = emalloc(sizeof(*pkg));
-	pkg->name = estrdup(name);
-	estrlcpy(version, name, sizeof(version));
-	q = strrchr(version, '.');
-	if (!q)
-		eprintf("invalid package name %s\n", name);
-	*q = '\0';
-	q = strrchr(version, '.');
-	if (!q)
-		eprintf("invalid package name %s\n", name);
-	*q = '\0';
-	p = strchr(version, '#');
+	pkg->name = estrdup(tmp);
 	if (p)
 		pkg->version = estrdup(p + 1);
 	else
@@ -576,5 +590,67 @@ pkgfree(struct pkg *pkg)
 		pe = tmp;
 	}
 	free(pkg->name);
+	free(pkg->version);
 	free(pkg);
+}
+
+void
+parsename(const char *path, char **name)
+{
+	char tmp[PATH_MAX], filename[PATH_MAX], *p;
+
+	estrlcpy(tmp, path, sizeof(tmp));
+	estrlcpy(filename, basename(tmp), sizeof(filename));
+	/* strip extension */
+	p = strrchr(filename, '.');
+	if (!p)
+		goto err;
+	*p = '\0';
+	p = strrchr(filename, '.');
+	if (!p)
+		goto err;
+	*p = '\0';
+	/* extract name */
+	p = strchr(filename, '#');
+	if (p)
+		*p = '\0';
+	if (filename[0] == '\0')
+		goto err;
+	*name = estrdup(filename);
+	return;
+err:
+	eprintf("%s: invalid package filename\n",
+		path);
+}
+
+void
+parseversion(const char *path, char **version)
+{
+	char tmp[PATH_MAX], filename[PATH_MAX], *p;
+
+	estrlcpy(tmp, path, sizeof(tmp));
+	estrlcpy(filename, basename(tmp), sizeof(filename));
+	/* strip extension */
+	p = strrchr(filename, '.');
+	if (!p)
+		goto err;
+	*p = '\0';
+	p = strrchr(filename, '.');
+	if (!p)
+		goto err;
+	*p = '\0';
+	/* extract version */
+	p = strchr(filename, '#');
+	if (!p) {
+		*version = NULL;
+		return;
+	}
+	p++;
+	if (*p == '\0')
+		goto err;
+	*version = estrdup(p);
+	return ;
+err:
+	eprintf("%s: invalid package filename\n",
+		path);
 }

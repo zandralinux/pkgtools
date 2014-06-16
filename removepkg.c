@@ -23,7 +23,6 @@ int
 main(int argc, char *argv[])
 {
 	struct db *db;
-	char path[PATH_MAX];
 	char *prefix = "/";
 	int r;
 	int i;
@@ -55,19 +54,15 @@ main(int argc, char *argv[])
 	}
 
 	for (i = 0; i < argc; i++) {
-		if (!realpath(argv[i], path)) {
-			weprintf("realpath %s:", argv[i]);
-			continue;
-		}
-		r = dbwalk(db, removepkg, path);
+		r = dbwalk(db, removepkg, argv[i]);
 		if (r < 0) {
 			dbfree(db);
 			exit(EXIT_FAILURE);
 		} else if (r > 0) {
-			dbrm(db, path);
-			printf("removed %s\n", path);
+			dbrm(db, argv[i]);
+			printf("removed %s\n", argv[i]);
 		} else {
-			printf("%s is not installed\n", path);
+			printf("%s is not installed\n", argv[i]);
 		}
 	}
 
@@ -77,14 +72,12 @@ main(int argc, char *argv[])
 }
 
 static int
-removepkg(struct db *db, struct pkg *pkg, void *file)
+removepkg(struct db *db, struct pkg *pkg, void *name)
 {
-	char name[PATH_MAX], *p;
+	char *n = name;
 
-	estrlcpy(name, file, sizeof(name));
-	p = basename(name);
-	if (strcmp(pkg->name, p) == 0) {
-		if (dbpkgremove(db, p) < 0)
+	if (strcmp(pkg->name, n) == 0) {
+		if (dbpkgremove(db, n) < 0)
 			return -1;
 		return 1;
 	}

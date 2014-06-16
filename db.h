@@ -27,3 +27,5 @@ int dbpkgremove(struct db *, const char *);
 int dbrm(struct db *, const char *);
 struct pkg *pkgnew(char *);
 void pkgfree(struct pkg *);
+void parseversion(const char *, char **);
+void parsename(const char *, char **);
