@@ -507,7 +507,6 @@ dbrm(struct db *db, const char *file)
 			estrlcat(path, de->pkg->name, sizeof(path));
 			if (vflag == 1)
 				printf("removing %s\n", path);
-			/* nuke db entry for this package */
 			if (remove(path) < 0) {
 				weprintf("remove %s:", path);
 				return -1;
