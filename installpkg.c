@@ -11,7 +11,7 @@ static void
 usage(void)
 {
 	fprintf(stderr, VERSION " (c) 2014 morpheus engineers\n");
-	fprintf(stderr, "usage: %s [-f] [-p prefix] pkg...\n", argv0);
+	fprintf(stderr, "usage: %s [-v] [-f] [-p prefix] pkg...\n", argv0);
 	fprintf(stderr, "  -v    Enable verbose output\n");
 	fprintf(stderr, "  -f    Override filesystem checks and force installation\n");
 	fprintf(stderr, "  -p    Set the installation prefix\n");
