@@ -402,7 +402,8 @@ dbpkginstall(struct db *db, const char *name)
 		if (r == ARCHIVE_EOF)
 			break;
 		if (r != ARCHIVE_OK) {
-			fprintf(stderr, "%s\n", archive_error_string(ar));
+			fprintf(stderr, "%s: %s\n", archive_entry_pathname(entry),
+				archive_error_string(ar));
 			r = chdir(cwd);
 			if (r < 0)
 				fprintf(stderr, "chdir %s: %s\n", cwd, strerror(errno));
@@ -412,7 +413,8 @@ dbpkginstall(struct db *db, const char *name)
 			ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_UNLINK |
 			ARCHIVE_EXTRACT_SECURE_NODOTDOT;
 		if (archive_read_extract(ar, entry, flags) != ARCHIVE_OK)
-			fprintf(stderr, "%s\n", archive_error_string(ar));
+			fprintf(stderr, "%s: %s\n", archive_entry_pathname(entry),
+				archive_error_string(ar));
 	}
 
 	archive_read_free(ar);
