@@ -72,7 +72,7 @@ main(int argc, char *argv[])
 static int
 collidepkg(struct db *db, struct pkg *pkg, void *file)
 {
-	(void)pkg;
+	(void) pkg;
 	if (dbcollide(db, file) < 0)
 		return -1;
 	return 0;
