@@ -32,10 +32,6 @@ enprintf(int status, const char *fmt, ...)
 void
 venprintf(int status, const char *fmt, va_list ap)
 {
-#ifdef DEBUG
-	fprintf(stderr, "%s: ", argv0);
-#endif
-
 	vfprintf(stderr, fmt, ap);
 
 	if(fmt[0] && fmt[strlen(fmt)-1] == ':') {
@@ -50,10 +46,6 @@ void
 weprintf(const char *fmt, ...)
 {
 	va_list ap;
-
-#ifdef DEBUG
-	fprintf(stderr, "%s: ", argv0);
-#endif
 
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
