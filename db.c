@@ -106,7 +106,7 @@ dbfind(struct db *db, const char *name)
 }
 
 int
-dbcollide(struct db *db, const char *name)
+dbfscollide(struct db *db, const char *name)
 {
 	char pkgpath[PATH_MAX];
 	char path[PATH_MAX];

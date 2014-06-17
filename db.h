@@ -14,7 +14,7 @@ extern int vflag;
 
 struct db *dbinit(const char *);
 int dbload(struct db *);
-int dbcollide(struct db *, const char *);
+int dbfscollide(struct db *, const char *);
 int dbadd(struct db *, const char *);
 int dbwalk(struct db *, int (*)(struct db *, struct pkg *, void *), void *);
 int dblinks(struct db *, const char *);

@@ -5,7 +5,7 @@
 #include "db.h"
 #include "util.h"
 
-static int collidepkg(struct db *, struct pkg *, void *);
+static int fscollidepkg(struct db *, struct pkg *, void *);
 
 static void
 usage(void)
@@ -55,7 +55,7 @@ main(int argc, char *argv[])
 		if (vflag == 1)
 			printf("installing %s\n", path);
 		if (fflag == 0) {
-			r = dbwalk(db, collidepkg, path);
+			r = dbwalk(db, fscollidepkg, path);
 			if (r < 0)
 				exit(EXIT_FAILURE);
 		}
@@ -70,10 +70,10 @@ main(int argc, char *argv[])
 }
 
 static int
-collidepkg(struct db *db, struct pkg *pkg, void *file)
+fscollidepkg(struct db *db, struct pkg *pkg, void *file)
 {
 	(void) pkg;
-	if (dbcollide(db, file) < 0)
+	if (dbfscollide(db, file) < 0)
 		return -1;
 	return 0;
 }
