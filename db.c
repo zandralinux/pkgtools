@@ -39,11 +39,7 @@ dbinit(const char *prefix)
 	struct db *db;
 	struct sigaction sa;
 
-	db = malloc(sizeof(*db));
-	if (!db) {
-		fprintf(stderr, "out of memory\n");
-		return NULL;
-	}
+	db = emalloc(sizeof(*db));
 	db->head = NULL;
 
 	realpath(prefix, db->prefix);
@@ -53,17 +49,15 @@ dbinit(const char *prefix)
 
 	db->pkgdir = opendir(db->path);
 	if (!db->pkgdir) {
-		fprintf(stderr, "opendir %s: %s\n", db->path,
-			strerror(errno));
+		weprintf("opendir %s:", db->path);
 		return NULL;
 	}
 
 	if (flock(dirfd(db->pkgdir), LOCK_EX | LOCK_NB) < 0) {
 		if (errno == EWOULDBLOCK)
-			fprintf(stderr, "package db already locked\n");
+			weprintf("package db already locked\n");
 		else
-			fprintf(stderr, "flock %s: %s\n", db->path,
-				strerror(errno));
+			weprintf("flock %s:", db->path);
 		return NULL;
 	}
 
@@ -87,14 +81,8 @@ dbload(struct db *db)
 		if (strcmp(dp->d_name, ".") == 0 ||
 		    strcmp(dp->d_name, "..") == 0)
 			continue;
-		de = malloc(sizeof(*de));
-		if (!de) {
-			fprintf(stderr, "out of memory\n");
-			return -1;
-		}
+		de = emalloc(sizeof(*de));
 		de->pkg = pkgnew(dp->d_name);
-		if (!de->pkg)
-			return -1;
 		if (dbpkgload(db, de->pkg) < 0)
 			return -1;
 		de->next = db->head;
@@ -136,7 +124,8 @@ dbcollide(struct db *db, const char *name)
 	archive_read_support_format_tar(ar);
 
 	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
-		fprintf(stderr, "%s\n", archive_error_string(ar));
+		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
+			 archive_error_string(ar));
 		return -1;
 	}
 
@@ -145,7 +134,8 @@ dbcollide(struct db *db, const char *name)
 		if (r == ARCHIVE_EOF)
 			break;
 		if (r != ARCHIVE_OK) {
-			fprintf(stderr, "%s\n", archive_error_string(ar));
+			weprintf("archive_read_next_header: %s\n",
+				 archive_error_string(ar));
 			return -1;
 		}
 		estrlcpy(path, db->prefix, sizeof(path));
@@ -153,13 +143,11 @@ dbcollide(struct db *db, const char *name)
 		estrlcat(path, archive_entry_pathname(entry), sizeof(path));
 		if (access(path, F_OK) == 0) {
 			if (stat(path, &sb) < 0) {
-				fprintf(stderr, "lstat %s: %s\n",
-					archive_entry_pathname(entry),
-					strerror(errno));
+				weprintf("lstat %s:", archive_entry_pathname(entry));
 				return -1;
 			}
 			if (S_ISDIR(sb.st_mode) == 0) {
-				fprintf(stderr, "%s exists\n", path);
+				weprintf("%s exists\n", path);
 				ok = -1;
 			}
 		}
@@ -193,14 +181,13 @@ dbadd(struct db *db, const char *name)
 	archive_read_support_format_tar(ar);
 
 	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
-		fprintf(stderr, "%s\n", archive_error_string(ar));
+		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
+			 archive_error_string(ar));
 		return -1;
 	}
 
-	fp = fopen(path, "w");
-	if (!fp) {
-		fprintf(stderr, "fopen %s: %s\n", path,
-			strerror(errno));
+	if (!(fp = fopen(path, "w"))) {
+		weprintf("fopen %s:", path);
 		return -1;
 	}
 
@@ -209,7 +196,8 @@ dbadd(struct db *db, const char *name)
 		if (r == ARCHIVE_EOF)
 			break;
 		if (r != ARCHIVE_OK) {
-			fprintf(stderr, "%s\n", archive_error_string(ar));
+			weprintf("archive_read_next_header: %s\n",
+				 archive_error_string(ar));
 			return -1;
 		}
 		estrlcpy(tmppath, db->prefix, sizeof(tmppath));
@@ -225,7 +213,7 @@ dbadd(struct db *db, const char *name)
 		printf("updating %s\n", path);
 	fflush(fp);
 	if (fsync(fileno(fp)) < 0)
-		fprintf(stderr, "fsync: %s\n", strerror(errno));
+		weprintf("fsync %s:", path);
 	fclose(fp);
 
 	archive_read_free(ar);
@@ -282,8 +270,7 @@ dbfree(struct db *db)
 		de = tmp;
 	}
 	if (flock(dirfd(db->pkgdir), LOCK_UN) < 0) {
-		fprintf(stderr, "flock %s: %s\n", db->path,
-			strerror(errno));
+		weprintf("flock %s:", db->path);
 		return -1;
 	}
 	closedir(db->pkgdir);
@@ -319,10 +306,8 @@ dbpkgload(struct db *db, struct pkg *pkg)
 	estrlcat(path, "/", sizeof(path));
 	estrlcat(path, pkg->name, sizeof(path));
 
-	fp = fopen(path, "r");
-	if (!fp) {
-		fprintf(stderr, "fopen %s: %s\n", pkg->name,
-			strerror(errno));
+	if (!(fp = fopen(path, "r"))) {
+		weprintf("fopen %s:", pkg->name);
 		return -1;
 	}
 
@@ -332,32 +317,25 @@ dbpkgload(struct db *db, struct pkg *pkg)
 			*p = '\0';
 
 		if (buf[0] == '\0') {
-			fprintf(stderr, "malformed pkg file: %s\n",
-				path);
+			weprintf("%s: malformed pkg file\n", path);
+			free(buf);
+			fclose(fp);
 			return -1;
 		}
 
-		pe = malloc(sizeof(*pe));
-		if (!pe) {
-			fprintf(stderr, "out of memory\n");
-			return -1;
-		}
-
+		pe = emalloc(sizeof(*pe));
 		estrlcpy(pe->path, db->prefix, sizeof(pe->path));
 		estrlcat(pe->path, "/", sizeof(pe->path));
 		estrlcat(pe->path, buf, sizeof(pe->path));
-
 		pe->next = pkg->head;
 		pkg->head = pe;
 	}
+	free(buf);
 	if (ferror(fp)) {
-		fprintf(stderr, "input error %s: %s\n", pkg->name,
-			strerror(errno));
+		weprintf("%s: read error:", pkg->name);
 		fclose(fp);
 		return -1;
 	}
-
-	free(buf);
 	fclose(fp);
 	return 0;
 }
@@ -380,14 +358,17 @@ dbpkginstall(struct db *db, const char *name)
 	archive_read_support_format_tar(ar);
 
 	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
-		fprintf(stderr, "%s\n", archive_error_string(ar));
+		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
+			 archive_error_string(ar));
 		return -1;
 	}
 
-	getcwd(cwd, sizeof(cwd));
+	if (!getcwd(cwd, sizeof(cwd))) {
+		weprintf("getcwd:");
+		return -1;
+	}
 	if (chdir(db->prefix) < 0) {
-		fprintf(stderr, "chdir %s: %s\n", db->prefix,
-			strerror(errno));
+		weprintf("chdir %s:", db->prefix);
 		return -1;
 	}
 
@@ -396,10 +377,10 @@ dbpkginstall(struct db *db, const char *name)
 		if (r == ARCHIVE_EOF)
 			break;
 		if (r != ARCHIVE_OK) {
-			fprintf(stderr, "%s: %s\n", archive_entry_pathname(entry),
-				archive_error_string(ar));
+			weprintf("archive_read_next_header %s: %s\n",
+				 archive_entry_pathname(entry), archive_error_string(ar));
 			if (chdir(cwd) < 0)
-				fprintf(stderr, "chdir %s: %s\n", cwd, strerror(errno));
+				weprintf("chdir %s:", cwd);
 			return -1;
 		}
 		flags = ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_PERM |
@@ -407,14 +388,14 @@ dbpkginstall(struct db *db, const char *name)
 			ARCHIVE_EXTRACT_SECURE_NODOTDOT;
 		r = archive_read_extract(ar, entry, flags);
 		if (r != ARCHIVE_OK && r != ARCHIVE_WARN)
-			fprintf(stderr, "%s: %s\n", archive_entry_pathname(entry),
-				archive_error_string(ar));
+			weprintf("archive_read_extract %s: %s\n",
+				 archive_entry_pathname(entry), archive_error_string(ar));
 	}
 
 	archive_read_free(ar);
 
 	if (chdir(cwd) < 0) {
-		fprintf(stderr, "chdir %s: %s\n", cwd, strerror(errno));
+		weprintf("chdir %s:", cwd);
 		return -1;
 	}
 
@@ -457,14 +438,13 @@ dbpkgremove(struct db *db, const char *name)
 		}
 	}
 	if (!de) {
-		fprintf(stderr, "%s is not installed\n", name);
+		weprintf("%s: is not installed\n", name);
 		return -1;
 	}
 
 	for (pe = pkg->head; pe; pe = pe->next) {
 		if (lstat(pe->path, &sb) < 0) {
-			fprintf(stderr, "lstat %s: %s\n",
-				pe->path, strerror(errno));
+			weprintf("lstat %s:", pe->path);
 			continue;
 		}
 
@@ -484,8 +464,7 @@ dbpkgremove(struct db *db, const char *name)
 		if (vflag == 1)
 			printf("removing %s\n", pe->path);
 		if (remove(pe->path) < 0) {
-			fprintf(stderr, "remove %s: %s\n", pe->path,
-				strerror(errno));
+			weprintf("remove %s:", pe->path);
 			continue;
 		}
 	}
@@ -521,8 +500,7 @@ dbrm(struct db *db, const char *name)
 				printf("removing %s\n", path);
 			/* nuke db entry for this package */
 			if (remove(path) < 0) {
-				fprintf(stderr, "remove %s: %s\n", path,
-					strerror(errno));
+				weprintf("remove %s:", path);
 				return -1;
 			}
 			sync();
@@ -537,11 +515,7 @@ pkgnew(char *name)
 {
 	struct pkg *pkg;
 
-	pkg = malloc(sizeof(*pkg));
-	if (!pkg) {
-		fprintf(stderr, "out of memory\n");
-		return NULL;
-	}
+	pkg = emalloc(sizeof(*pkg));
 	pkg->name = name;
 	pkg->head = NULL;
 	return pkg;
