@@ -92,21 +92,8 @@ dbload(struct db *db)
 	return 0;
 }
 
-struct pkg *
-dbfind(struct db *db, const char *name)
-{
-	struct dbentry *de;
-
-	for (de = db->head; de; de = de->next)
-		if (de->deleted == 0 && strcmp(de->pkg->name, name) == 0)
-			break;
-	if (!de)
-		return NULL;
-	return de->pkg;
-}
-
 int
-dbfscollide(struct db *db, const char *name)
+dbfscollide(struct db *db, const char *file)
 {
 	char pkgpath[PATH_MAX];
 	char path[PATH_MAX];
@@ -116,7 +103,7 @@ dbfscollide(struct db *db, const char *name)
 	int ok = 0;
 	int r;
 
-	realpath(name, pkgpath);
+	realpath(file, pkgpath);
 
 	ar = archive_read_new();
 
@@ -159,7 +146,7 @@ dbfscollide(struct db *db, const char *name)
 }
 
 int
-dbadd(struct db *db, const char *name)
+dbadd(struct db *db, const char *file)
 {
 	char pkgpath[PATH_MAX], tmppath[PATH_MAX];
 	char path[PATH_MAX];
@@ -168,7 +155,7 @@ dbadd(struct db *db, const char *name)
 	struct archive_entry *entry;
 	int r;
 
-	realpath(name, pkgpath);
+	realpath(file, pkgpath);
 
 	estrlcpy(tmppath, pkgpath, sizeof(tmppath));
 	estrlcpy(path, db->path, sizeof(path));
@@ -341,7 +328,7 @@ dbpkgload(struct db *db, struct pkg *pkg)
 }
 
 int
-dbpkginstall(struct db *db, const char *name)
+dbpkginstall(struct db *db, const char *file)
 {
 	char cwd[PATH_MAX];
 	char pkgpath[PATH_MAX];
@@ -350,7 +337,7 @@ dbpkginstall(struct db *db, const char *name)
 	int flags;
 	int r;
 
-	realpath(name, pkgpath);
+	realpath(file, pkgpath);
 
 	ar = archive_read_new();
 
@@ -418,7 +405,7 @@ rmemptydir(const char *f, const struct stat *sb, int typeflag,
 }
 
 int
-dbpkgremove(struct db *db, const char *name)
+dbpkgremove(struct db *db, const char *file)
 {
 	struct dbentry *de;
 	struct pkg *pkg;
@@ -426,7 +413,7 @@ dbpkgremove(struct db *db, const char *name)
 	struct stat sb;
 	char tmppath[PATH_MAX], *p;
 
-	estrlcpy(tmppath, name, sizeof(tmppath));
+	estrlcpy(tmppath, file, sizeof(tmppath));
 	p = basename(tmppath);
 
 	for (de = db->head; de; de = de->next) {
@@ -438,7 +425,7 @@ dbpkgremove(struct db *db, const char *name)
 		}
 	}
 	if (!de) {
-		weprintf("%s: is not installed\n", name);
+		weprintf("can't find %s in pkg db\n", p);
 		return -1;
 	}
 
@@ -484,12 +471,12 @@ dbpkgremove(struct db *db, const char *name)
 }
 
 int
-dbrm(struct db *db, const char *name)
+dbrm(struct db *db, const char *file)
 {
 	struct dbentry *de;
 	char path[PATH_MAX], tmpname[PATH_MAX], *p;
 
-	estrlcpy(tmpname, name, sizeof(tmpname));
+	estrlcpy(tmpname, file, sizeof(tmpname));
 	p = basename(tmpname);
 	for (de = db->head; de; de = de->next) {
 		if (de->deleted == 1 && strcmp(de->pkg->name, p) == 0) {

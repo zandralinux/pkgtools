@@ -54,10 +54,14 @@ main(int argc, char *argv[])
 	for (i = 0; i < argc; i++) {
 		realpath(argv[i], path);
 		r = dbwalk(db, removepkg, path);
-		if (r < 0)
+		if (r < 0) {
 			exit(EXIT_FAILURE);
-		dbrm(db, path);
-		printf("removed %s\n", path);
+		} else if (r > 0) {
+			dbrm(db, path);
+			printf("removed %s\n", path);
+		} else {
+			printf("%s is not installed\n", path);
+		}
 	}
 
 	dbfree(db);
@@ -72,8 +76,10 @@ removepkg(struct db *db, struct pkg *pkg, void *file)
 
 	estrlcpy(name, file, sizeof(name));
 	p = basename(name);
-	if (strcmp(pkg->name, p) == 0)
+	if (strcmp(pkg->name, p) == 0) {
 		if (dbpkgremove(db, p) < 0)
 			return -1;
+		return 1;
+	}
 	return 0;
 }
