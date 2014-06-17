@@ -456,6 +456,7 @@ dbpkgremove(struct db *db, const char *file)
 		if (S_ISDIR(sb.st_mode) == 1) {
 			if (fflag == 0)
 				printf("ignoring directory %s\n", pe->path);
+			/* We'll remove these further down in a separate pass */
 			continue;
 		}
 
