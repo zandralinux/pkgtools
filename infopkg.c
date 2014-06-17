@@ -15,6 +15,7 @@ static int ownpkg(struct db *, struct pkg *, void *);
 static void
 usage(void)
 {
+	fprintf(stderr, VERSION " (c) 2014 morpheus engineers\n");
 	fprintf(stderr, "usage: %s [-p prefix] [-O filename...]\n", argv0);
 	fprintf(stderr, "  -p	 Set the installation prefix\n");
 	fprintf(stderr, "  -O	 Look for the packages that own the given filename(s)\n");

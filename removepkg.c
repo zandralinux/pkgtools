@@ -11,6 +11,7 @@ static int removepkg(struct db *, struct pkg *, void *);
 static void
 usage(void)
 {
+	fprintf(stderr, VERSION " (c) 2014 morpheus engineers\n");
 	fprintf(stderr, "usage: %s [-v] [-f] [-p prefix] pkg...\n", argv0);
 	fprintf(stderr, "  -v    Enable verbose output\n");
 	fprintf(stderr, "  -f    Force the removal of empty directories and symlinks\n");
