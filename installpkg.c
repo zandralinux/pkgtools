@@ -7,8 +7,6 @@
 
 static int collidepkg(struct db *, struct pkg *, void *);
 
-char *argv0;
-
 static void
 usage(void)
 {

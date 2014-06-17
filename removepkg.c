@@ -8,8 +8,6 @@
 
 static int removepkg(struct db *, struct pkg *, void *);
 
-char *argv0;
-
 static void
 usage(void)
 {

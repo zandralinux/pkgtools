@@ -5,6 +5,8 @@ include config.mk
 
 LIB = \
 	db.o \
+	ealloc.o \
+	eprintf.o \
 	strlcat.o \
 	strlcpy.o
 
