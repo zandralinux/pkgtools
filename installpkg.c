@@ -48,8 +48,10 @@ main(int argc, char *argv[])
 	if (!db)
 		exit(EXIT_FAILURE);
 	r = dbload(db);
-	if (r < 0)
+	if (r < 0) {
+		dbfree(db);
 		exit(EXIT_FAILURE);
+	}
 
 	for (i = 0; i < argc; i++) {
 		realpath(argv[i], path);
@@ -57,8 +59,10 @@ main(int argc, char *argv[])
 			printf("installing %s\n", path);
 		if (fflag == 0) {
 			r = dbwalk(db, fscollidepkg, path);
-			if (r < 0)
+			if (r < 0) {
+				dbfree(db);
 				exit(EXIT_FAILURE);
+			}
 		}
 		dbadd(db, path);
 		dbpkginstall(db, path);

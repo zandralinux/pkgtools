@@ -49,13 +49,16 @@ main(int argc, char *argv[])
 	if (!db)
 		exit(EXIT_FAILURE);
 	r = dbload(db);
-	if (r < 0)
+	if (r < 0) {
+		dbfree(db);
 		exit(EXIT_FAILURE);
+	}
 
 	for (i = 0; i < argc; i++) {
 		realpath(argv[i], path);
 		r = dbwalk(db, removepkg, path);
 		if (r < 0) {
+			dbfree(db);
 			exit(EXIT_FAILURE);
 		} else if (r > 0) {
 			dbrm(db, path);

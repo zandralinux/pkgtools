@@ -46,7 +46,11 @@ dbinit(const char *prefix)
 	db = emalloc(sizeof(*db));
 	db->head = NULL;
 
-	realpath(prefix, db->prefix);
+	if(!(realpath(prefix, db->prefix))) {
+		weprintf("realpath %s:", prefix);
+		free(db);
+		return NULL;
+	}
 
 	estrlcpy(db->path, db->prefix, sizeof(db->path));
 	estrlcat(db->path, DBPATH, sizeof(db->path));
@@ -54,6 +58,7 @@ dbinit(const char *prefix)
 	db->pkgdir = opendir(db->path);
 	if (!db->pkgdir) {
 		weprintf("opendir %s:", db->path);
+		free(db);
 		return NULL;
 	}
 
@@ -62,6 +67,7 @@ dbinit(const char *prefix)
 			weprintf("package db already locked\n");
 		else
 			weprintf("flock %s:", db->path);
+		free(db);
 		return NULL;
 	}
 
@@ -88,8 +94,11 @@ dbload(struct db *db)
 			continue;
 		de = emalloc(sizeof(*de));
 		de->pkg = pkgnew(dp->d_name);
-		if (dbpkgload(db, de->pkg) < 0)
+		if (dbpkgload(db, de->pkg) < 0) {
+			pkgfree(de->pkg);
+			free(de);
 			return -1;
+		}
 		de->next = db->head;
 		db->head = de;
 	}

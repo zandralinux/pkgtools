@@ -28,8 +28,7 @@ main(int argc, char *argv[])
 	struct db *db;
 	char *prefix = "/";
 	int oflag = 0;
-	int i;
-	int r;
+	int i, r;
 
 	ARGBEGIN {
 	case 'o':
@@ -49,13 +48,17 @@ main(int argc, char *argv[])
 	if (!db)
 		exit(EXIT_FAILURE);
 	r = dbload(db);
-	if (r < 0)
+	if (r < 0) {
+		dbfree(db);
 		exit(EXIT_FAILURE);
+	}
 
 	for (i = 0; i < argc; i++) {
 		r = dbwalk(db, ownpkg, argv[i]);
-		if (r < 0)
+		if (r < 0) {
+			dbfree(db);
 			exit(EXIT_FAILURE);
+		}
 	}
 
 	dbfree(db);
