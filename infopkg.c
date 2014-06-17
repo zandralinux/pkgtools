@@ -68,24 +68,18 @@ ownpkg(struct db *db, struct pkg *pkg, void *file)
 	struct pkgentry *pe;
 	struct stat sb1, sb2;
 	char path[PATH_MAX];
-	int r;
 
 	realpath(file, path);
 
-	r = lstat(path, &sb1);
-	if (r < 0) {
-		fprintf(stderr, "lstat %s: %s\n", path, strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	if (lstat(path, &sb1) < 0)
+		eprintf("lstat %s:", path);
 
 	if (dbpkgload(db, pkg) < 0)
 		exit(EXIT_FAILURE);
 
 	for (pe = pkg->head; pe; pe = pe->next) {
-		r = lstat(pe->path, &sb2);
-		if (r < 0) {
-			fprintf(stderr, "lstat %s: %s\n",
-				pe->path, strerror(errno));
+		if (lstat(pe->path, &sb2) < 0) {
+			weprintf("lstat %s:", pe->path);
 			continue;
 		}
 		if (sb1.st_dev == sb2.st_dev &&
@@ -94,6 +88,5 @@ ownpkg(struct db *db, struct pkg *pkg, void *file)
 			break;
 		}
 	}
-
 	return 0;
 }
