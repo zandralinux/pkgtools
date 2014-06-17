@@ -48,6 +48,7 @@ install: all
 	@mkdir -p $(DESTDIR)$(PREFIX)/bin
 	@cp -f $(BIN) $(DESTDIR)$(PREFIX)/bin
 	@cp -f $(SHPROG) $(DESTDIR)$(PREFIX)/bin
+	@for i in $(SHPROG); do chmod 755 $(DESTDIR)$(PREFIX)/bin/$$i; done
 
 uninstall:
 	@echo removing executables from $(DESTDIR)$(PREFIX)/bin
