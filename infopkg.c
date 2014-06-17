@@ -15,9 +15,9 @@ static int ownpkg(struct db *, struct pkg *, void *);
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s [-O filename...] [-p prefix]\n", argv0);
-	fprintf(stderr, "  -O	 Look for the package that owns the given filename(s)\n");
+	fprintf(stderr, "usage: %s [-p prefix] [-O filename...]\n", argv0);
 	fprintf(stderr, "  -p	 Set the installation prefix\n");
+	fprintf(stderr, "  -O	 Look for the packages that own the given filename(s)\n");
 	exit(1);
 }
 
