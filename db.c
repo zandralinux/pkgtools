@@ -17,6 +17,9 @@
 #include "db.h"
 #include "util.h"
 
+#define DBPATH "/var/pkg"
+#define ARCHIVEBUFSIZ BUFSIZ
+
 int fflag = 0;
 int vflag = 0;
 
@@ -46,7 +49,7 @@ dbinit(const char *prefix)
 	realpath(prefix, db->prefix);
 
 	estrlcpy(db->path, db->prefix, sizeof(db->path));
-	estrlcat(db->path, "/var/pkg", sizeof(db->path));
+	estrlcat(db->path, DBPATH, sizeof(db->path));
 
 	db->pkgdir = opendir(db->path);
 	if (!db->pkgdir) {
@@ -116,7 +119,7 @@ dbfscollide(struct db *db, const char *file)
 	archive_read_support_filter_xz(ar);
 	archive_read_support_format_tar(ar);
 
-	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
+	if (archive_read_open_filename(ar, pkgpath, ARCHIVEBUFSIZ) < 0) {
 		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
 			 archive_error_string(ar));
 		return -1;
@@ -176,7 +179,7 @@ dbadd(struct db *db, const char *file)
 	archive_read_support_filter_xz(ar);
 	archive_read_support_format_tar(ar);
 
-	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
+	if (archive_read_open_filename(ar, pkgpath, ARCHIVEBUFSIZ) < 0) {
 		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
 			 archive_error_string(ar));
 		return -1;
@@ -361,7 +364,7 @@ dbpkginstall(struct db *db, const char *file)
 	archive_read_support_filter_xz(ar);
 	archive_read_support_format_tar(ar);
 
-	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
+	if (archive_read_open_filename(ar, pkgpath, ARCHIVEBUFSIZ) < 0) {
 		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
 			 archive_error_string(ar));
 		return -1;
