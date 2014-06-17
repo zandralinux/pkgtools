@@ -509,7 +509,7 @@ pkgnew(char *name)
 	struct pkg *pkg;
 
 	pkg = emalloc(sizeof(*pkg));
-	pkg->name = name;
+	pkg->name = estrdup(name);
 	pkg->head = NULL;
 	return pkg;
 }
@@ -525,5 +525,6 @@ pkgfree(struct pkg *pkg)
 		free(pe);
 		pe = tmp;
 	}
+	free(pkg->name);
 	free(pkg);
 }
