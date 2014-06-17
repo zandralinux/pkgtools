@@ -135,8 +135,7 @@ dbcollide(struct db *db, const char *name)
 	archive_read_support_filter_gzip(ar);
 	archive_read_support_format_tar(ar);
 
-	r = archive_read_open_filename(ar, pkgpath, 10240);
-	if (r < 0) {
+	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
 		fprintf(stderr, "%s\n", archive_error_string(ar));
 		return -1;
 	}
@@ -153,8 +152,7 @@ dbcollide(struct db *db, const char *name)
 		estrlcat(path, "/", sizeof(path));
 		estrlcat(path, archive_entry_pathname(entry), sizeof(path));
 		if (access(path, F_OK) == 0) {
-			r = stat(path, &sb);
-			if (r < 0) {
+			if (stat(path, &sb) < 0) {
 				fprintf(stderr, "lstat %s: %s\n",
 					archive_entry_pathname(entry),
 					strerror(errno));
@@ -194,8 +192,7 @@ dbadd(struct db *db, const char *name)
 	archive_read_support_filter_gzip(ar);
 	archive_read_support_format_tar(ar);
 
-	r = archive_read_open_filename(ar, pkgpath, 10240);
-	if (r < 0) {
+	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
 		fprintf(stderr, "%s\n", archive_error_string(ar));
 		return -1;
 	}
@@ -227,8 +224,7 @@ dbadd(struct db *db, const char *name)
 	if (vflag == 1)
 		printf("updating %s\n", path);
 	fflush(fp);
-	r = fsync(fileno(fp));
-	if (r < 0)
+	if (fsync(fileno(fp)) < 0)
 		fprintf(stderr, "fsync: %s\n", strerror(errno));
 	fclose(fp);
 
@@ -383,15 +379,13 @@ dbpkginstall(struct db *db, const char *name)
 	archive_read_support_filter_gzip(ar);
 	archive_read_support_format_tar(ar);
 
-	r = archive_read_open_filename(ar, pkgpath, 10240);
-	if (r < 0) {
+	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
 		fprintf(stderr, "%s\n", archive_error_string(ar));
 		return -1;
 	}
 
 	getcwd(cwd, sizeof(cwd));
-	r = chdir(db->prefix);
-	if (r < 0) {
+	if (chdir(db->prefix) < 0) {
 		fprintf(stderr, "chdir %s: %s\n", db->prefix,
 			strerror(errno));
 		return -1;
@@ -404,8 +398,7 @@ dbpkginstall(struct db *db, const char *name)
 		if (r != ARCHIVE_OK) {
 			fprintf(stderr, "%s: %s\n", archive_entry_pathname(entry),
 				archive_error_string(ar));
-			r = chdir(cwd);
-			if (r < 0)
+			if (chdir(cwd) < 0)
 				fprintf(stderr, "chdir %s: %s\n", cwd, strerror(errno));
 			return -1;
 		}
@@ -420,8 +413,7 @@ dbpkginstall(struct db *db, const char *name)
 
 	archive_read_free(ar);
 
-	r = chdir(cwd);
-	if (r < 0) {
+	if (chdir(cwd) < 0) {
 		fprintf(stderr, "chdir %s: %s\n", cwd, strerror(errno));
 		return -1;
 	}
@@ -452,7 +444,6 @@ dbpkgremove(struct db *db, const char *name)
 	struct pkgentry *pe;
 	struct stat sb;
 	char tmppath[PATH_MAX], *p;
-	int r;
 
 	estrlcpy(tmppath, name, sizeof(tmppath));
 	p = basename(tmppath);
@@ -471,8 +462,7 @@ dbpkgremove(struct db *db, const char *name)
 	}
 
 	for (pe = pkg->head; pe; pe = pe->next) {
-		r = lstat(pe->path, &sb);
-		if (r < 0) {
+		if (lstat(pe->path, &sb) < 0) {
 			fprintf(stderr, "lstat %s: %s\n",
 				pe->path, strerror(errno));
 			continue;
@@ -493,8 +483,7 @@ dbpkgremove(struct db *db, const char *name)
 
 		if (vflag == 1)
 			printf("removing %s\n", pe->path);
-		r = remove(pe->path);
-		if (r < 0) {
+		if (remove(pe->path) < 0) {
 			fprintf(stderr, "remove %s: %s\n", pe->path,
 				strerror(errno));
 			continue;
@@ -520,7 +509,6 @@ dbrm(struct db *db, const char *name)
 {
 	struct dbentry *de;
 	char path[PATH_MAX], tmpname[PATH_MAX], *p;
-	int r;
 
 	estrlcpy(tmpname, name, sizeof(tmpname));
 	p = basename(tmpname);
@@ -532,8 +520,7 @@ dbrm(struct db *db, const char *name)
 			if (vflag == 1)
 				printf("removing %s\n", path);
 			/* nuke db entry for this package */
-			r = remove(path);
-			if (r < 0) {
+			if (remove(path) < 0) {
 				fprintf(stderr, "remove %s: %s\n", path,
 					strerror(errno));
 				return -1;
