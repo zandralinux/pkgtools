@@ -107,8 +107,7 @@ dbfscollide(struct db *db, const char *file)
 	struct archive *ar;
 	struct archive_entry *entry;
 	struct stat sb;
-	int ok = 0;
-	int r;
+	int ok = 0, r;
 
 	realpath(file, pkgpath);
 
@@ -300,8 +299,9 @@ dbpkgload(struct db *db, struct pkg *pkg)
 	struct pkgentry *pe;
 	FILE *fp;
 	char path[PATH_MAX];
-	char *buf = NULL, *p;
+	char *buf = NULL;
 	size_t sz = 0;
+	ssize_t len;
 
 	if (pkg->head)
 		return 0;
@@ -315,10 +315,9 @@ dbpkgload(struct db *db, struct pkg *pkg)
 		return -1;
 	}
 
-	while (getline(&buf, &sz, fp) != -1) {
-		p = strrchr(buf, '\n');
-		if (p)
-			*p = '\0';
+	while ((len = getline(&buf, &sz, fp)) != -1) {
+		if (len > 0 && buf[len - 1] == '\n')
+			buf[len - 1] = '\0';
 
 		if (buf[0] == '\0') {
 			weprintf("%s: malformed pkg file\n", path);
@@ -352,8 +351,7 @@ dbpkginstall(struct db *db, const char *file)
 	char pkgpath[PATH_MAX];
 	struct archive *ar;
 	struct archive_entry *entry;
-	int flags;
-	int r;
+	int flags, r;
 
 	realpath(file, pkgpath);
 

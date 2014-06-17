@@ -19,7 +19,7 @@ usage(void)
 	fprintf(stderr, "usage: %s [-p prefix] [-o filename...]\n", argv0);
 	fprintf(stderr, "  -p	 Set the installation prefix\n");
 	fprintf(stderr, "  -o	 Look for the packages that own the given filename(s)\n");
-	exit(1);
+	exit(EXIT_FAILURE);
 }
 
 int
