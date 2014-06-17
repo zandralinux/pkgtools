@@ -16,9 +16,9 @@ static void
 usage(void)
 {
 	fprintf(stderr, VERSION " (c) 2014 morpheus engineers\n");
-	fprintf(stderr, "usage: %s [-p prefix] [-O filename...]\n", argv0);
+	fprintf(stderr, "usage: %s [-p prefix] [-o filename...]\n", argv0);
 	fprintf(stderr, "  -p	 Set the installation prefix\n");
-	fprintf(stderr, "  -O	 Look for the packages that own the given filename(s)\n");
+	fprintf(stderr, "  -o	 Look for the packages that own the given filename(s)\n");
 	exit(1);
 }
 
@@ -27,13 +27,13 @@ main(int argc, char *argv[])
 {
 	struct db *db;
 	char *prefix = "/";
-	int Oflag = 0;
+	int oflag = 0;
 	int i;
 	int r;
 
 	ARGBEGIN {
-	case 'O':
-		Oflag = 1;
+	case 'o':
+		oflag = 1;
 		break;
 	case 'p':
 		prefix = ARGF();
@@ -42,7 +42,7 @@ main(int argc, char *argv[])
 		usage();
 	} ARGEND;
 
-	if (Oflag == 0 || argc < 1)
+	if (oflag == 0 || argc < 1)
 		usage();
 
 	db = dbinit(prefix);
