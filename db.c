@@ -33,6 +33,7 @@ struct db {
 	struct dbentry *head;
 };
 
+/* Request access to the db and initialize the context */
 struct db *
 dbinit(const char *prefix)
 {
@@ -71,6 +72,7 @@ dbinit(const char *prefix)
 	return db;
 }
 
+/* Load the entire db in memory */
 int
 dbload(struct db *db)
 {
@@ -92,6 +94,8 @@ dbload(struct db *db)
 	return 0;
 }
 
+/* Check if the contents of package `file'
+ * collide with corresponding entries in the filesystem */
 int
 dbfscollide(struct db *db, const char *file)
 {
@@ -147,6 +151,7 @@ dbfscollide(struct db *db, const char *file)
 	return ok;
 }
 
+/* Update the db entry on disk for package `file' */
 int
 dbadd(struct db *db, const char *file)
 {
@@ -212,6 +217,7 @@ dbadd(struct db *db, const char *file)
 	return 0;
 }
 
+/* Walk through all the db entries and call `cb' for each one */
 int
 dbwalk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 {
@@ -231,6 +237,7 @@ dbwalk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 	return 0;
 }
 
+/* Return the number of packages that have references to `path' */
 int
 dblinks(struct db *db, const char *path)
 {
@@ -248,6 +255,7 @@ dblinks(struct db *db, const char *path)
 	return links;
 }
 
+/* Free the db context and release resources */
 int
 dbfree(struct db *db)
 {
@@ -269,6 +277,7 @@ dbfree(struct db *db)
 	return 0;
 }
 
+/* Dump the db entries, for debugging purposes only */
 void
 dbdump(struct db *db)
 {
@@ -281,6 +290,7 @@ dbdump(struct db *db)
 	}
 }
 
+/* Load the package contents for `pkg' */
 int
 dbpkgload(struct db *db, struct pkg *pkg)
 {
@@ -331,6 +341,7 @@ dbpkgload(struct db *db, struct pkg *pkg)
 	return 0;
 }
 
+/* Install the package `file' to disk */
 int
 dbpkginstall(struct db *db, const char *file)
 {
@@ -410,6 +421,7 @@ rmemptydir(const char *f, const struct stat *sb, int typeflag,
 	return 0;
 }
 
+/* Remove the package entries for `file' */
 int
 dbpkgremove(struct db *db, const char *file)
 {
@@ -476,6 +488,7 @@ dbpkgremove(struct db *db, const char *file)
 	return 0;
 }
 
+/* Physically unlink the db entry for `file' */
 int
 dbrm(struct db *db, const char *file)
 {
@@ -503,6 +516,7 @@ dbrm(struct db *db, const char *file)
 	return 0;
 }
 
+/* Create a new package instance */
 struct pkg *
 pkgnew(char *name)
 {
@@ -514,6 +528,7 @@ pkgnew(char *name)
 	return pkg;
 }
 
+/* Release `pkg' instance */
 void
 pkgfree(struct pkg *pkg)
 {
