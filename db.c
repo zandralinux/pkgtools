@@ -108,6 +108,8 @@ dbfscollide(struct db *db, const char *file)
 	ar = archive_read_new();
 
 	archive_read_support_filter_gzip(ar);
+	archive_read_support_filter_bzip2(ar);
+	archive_read_support_filter_xz(ar);
 	archive_read_support_format_tar(ar);
 
 	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
@@ -165,6 +167,8 @@ dbadd(struct db *db, const char *file)
 	ar = archive_read_new();
 
 	archive_read_support_filter_gzip(ar);
+	archive_read_support_filter_bzip2(ar);
+	archive_read_support_filter_xz(ar);
 	archive_read_support_format_tar(ar);
 
 	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
@@ -342,6 +346,8 @@ dbpkginstall(struct db *db, const char *file)
 	ar = archive_read_new();
 
 	archive_read_support_filter_gzip(ar);
+	archive_read_support_filter_bzip2(ar);
+	archive_read_support_filter_xz(ar);
 	archive_read_support_format_tar(ar);
 
 	if (archive_read_open_filename(ar, pkgpath, 10240) < 0) {
