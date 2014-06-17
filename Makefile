@@ -4,19 +4,19 @@ include config.mk
 .SUFFIXES: .c .o
 
 LIB = \
-	db.o \
-	ealloc.o \
+	db.o      \
+	ealloc.o  \
 	eprintf.o \
 	strlcat.o \
 	strlcpy.o
 
 SRC = \
-	infopkg.c \
+	infopkg.c    \
 	installpkg.c \
 	removepkg.c
 
 SHPROG = \
-	fetchpkg \
+	fetchpkg     \
 	searchpkg
 
 OBJ = $(SRC:.c=.o) $(LIB)
