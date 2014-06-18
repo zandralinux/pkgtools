@@ -46,7 +46,7 @@ dbinit(const char *prefix)
 	db = emalloc(sizeof(*db));
 	db->head = NULL;
 
-	if(!(realpath(prefix, db->prefix))) {
+	if(!realpath(prefix, db->prefix)) {
 		weprintf("realpath %s:", prefix);
 		free(db);
 		return NULL;
@@ -118,7 +118,10 @@ dbfscollide(struct db *db, const char *file)
 	struct stat sb;
 	int ok = 0, r;
 
-	realpath(file, pkgpath);
+	if (!realpath(file, pkgpath)) {
+		weprintf("realpath %s:", file);
+		return -1;
+	}
 
 	ar = archive_read_new();
 
@@ -173,7 +176,10 @@ dbadd(struct db *db, const char *file)
 	struct archive_entry *entry;
 	int r;
 
-	realpath(file, pkgpath);
+	if (!realpath(file, pkgpath)) {
+		weprintf("realpath %s:", file);
+		return -1;
+	}
 
 	estrlcpy(tmppath, pkgpath, sizeof(tmppath));
 	estrlcpy(path, db->path, sizeof(path));
@@ -362,7 +368,10 @@ dbpkginstall(struct db *db, const char *file)
 	struct archive_entry *entry;
 	int flags, r;
 
-	realpath(file, pkgpath);
+	if (!realpath(file, pkgpath)) {
+		weprintf("realpath %s:", file);
+		return -1;
+	}
 
 	ar = archive_read_new();
 

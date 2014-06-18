@@ -26,6 +26,7 @@ int
 main(int argc, char *argv[])
 {
 	struct db *db;
+	char path[PATH_MAX];
 	char *prefix = "/";
 	int oflag = 0;
 	int i, r;
@@ -54,7 +55,11 @@ main(int argc, char *argv[])
 	}
 
 	for (i = 0; i < argc; i++) {
-		r = dbwalk(db, ownpkg, argv[i]);
+		if (!realpath(argv[i], path)) {
+			weprintf("realpath %s:", argv[i]);
+			continue;
+		}
+		r = dbwalk(db, ownpkg, path);
 		if (r < 0) {
 			dbfree(db);
 			exit(EXIT_FAILURE);
@@ -69,11 +74,9 @@ main(int argc, char *argv[])
 static int
 ownpkg(struct db *db, struct pkg *pkg, void *file)
 {
+	char *path = file;
 	struct pkgentry *pe;
 	struct stat sb1, sb2;
-	char path[PATH_MAX];
-
-	realpath(file, path);
 
 	if (lstat(path, &sb1) < 0)
 		eprintf("lstat %s:", path);

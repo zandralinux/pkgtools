@@ -55,7 +55,10 @@ main(int argc, char *argv[])
 	}
 
 	for (i = 0; i < argc; i++) {
-		realpath(argv[i], path);
+		if (!realpath(argv[i], path)) {
+			weprintf("realpath %s:", argv[i]);
+			continue;
+		}
 		r = dbwalk(db, removepkg, path);
 		if (r < 0) {
 			dbfree(db);

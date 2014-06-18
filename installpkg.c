@@ -54,7 +54,10 @@ main(int argc, char *argv[])
 	}
 
 	for (i = 0; i < argc; i++) {
-		realpath(argv[i], path);
+		if (!realpath(argv[i], path)) {
+			weprintf("realpath %s:", argv[i]);
+			continue;
+		}
 		if (vflag == 1)
 			printf("installing %s\n", path);
 		if (fflag == 0) {
