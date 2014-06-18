@@ -16,8 +16,8 @@ static void
 usage(void)
 {
 	fprintf(stderr, VERSION " (c) 2014 morpheus engineers\n");
-	fprintf(stderr, "usage: %s [-p prefix] [-o filename...]\n", argv0);
-	fprintf(stderr, "  -p	 Set the installation prefix\n");
+	fprintf(stderr, "usage: %s [-r path] [-o filename...]\n", argv0);
+	fprintf(stderr, "  -r	 Set alternative installation root\n");
 	fprintf(stderr, "  -o	 Look for the packages that own the given filename(s)\n");
 	exit(EXIT_FAILURE);
 }
@@ -34,7 +34,7 @@ main(int argc, char *argv[])
 	case 'o':
 		oflag = 1;
 		break;
-	case 'p':
+	case 'r':
 		prefix = ARGF();
 		break;
 	default:
