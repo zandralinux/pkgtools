@@ -541,9 +541,24 @@ struct pkg *
 pkgnew(char *name)
 {
 	struct pkg *pkg;
+	char version[PATH_MAX], *p, *q;
 
 	pkg = emalloc(sizeof(*pkg));
 	pkg->name = estrdup(name);
+	estrlcpy(version, name, sizeof(version));
+	q = strrchr(version, '.');
+	if (!q)
+		eprintf("invalid package name %s\n", name);
+	*q = '\0';
+	q = strrchr(version, '.');
+	if (!q)
+		eprintf("invalid package name %s\n", name);
+	*q = '\0';
+	p = strchr(version, '#');
+	if (p)
+		pkg->version = estrdup(p + 1);
+	else
+		pkg->version = NULL;
 	pkg->head = NULL;
 	return pkg;
 }

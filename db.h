@@ -6,6 +6,7 @@ struct pkgentry {
 
 struct pkg {
 	char *name;
+	char *version;
 	struct pkgentry *head;
 };
 
