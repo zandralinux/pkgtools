@@ -99,6 +99,7 @@ dbload(struct db *db)
 			free(de);
 			return -1;
 		}
+		de->deleted = 0;
 		de->next = db->head;
 		db->head = de;
 	}
