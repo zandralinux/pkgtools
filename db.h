@@ -19,6 +19,7 @@ struct rejrule {
 struct pkg {
 	char *name;
 	char *version;
+	char path[PATH_MAX];
 	int deleted;
 	struct pkgentry *head;
 	struct pkg *next;
@@ -30,16 +31,16 @@ extern int vflag;
 struct db *db_new(const char *);
 int db_free(struct db *);
 int db_add(struct db *, const char *);
-int db_rm(struct db *, struct pkg *);
+int db_rm(struct pkg *);
 int db_load(struct db *);
 int db_walk(struct db *, int (*)(struct db *, struct pkg *, void *), void *);
 int db_links(struct db *, const char *);
 int db_collisions(struct db *, const char *);
 
-int pkg_load(struct db *, struct pkg *);
+struct pkg *pkg_load(struct db *, const char *);
 int pkg_install(struct db *, const char *);
 int pkg_remove(struct db *, struct pkg *);
-struct pkg *pkg_new(char *);
+struct pkg *pkg_new(const char *, const char *, const char *);
 void pkg_free(struct pkg *);
 
 void parse_version(const char *, char **);
