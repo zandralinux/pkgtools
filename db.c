@@ -101,39 +101,17 @@ db_free(struct db *db)
 	return 0;
 }
 
-/* Update the db entry on disk for package `file' */
+/* Update the db entry on disk for package `pkg' */
 int
-db_add(struct db *db, const char *file)
+db_add(struct db *db, struct pkg *pkg)
 {
-	char pkgpath[PATH_MAX];
 	char path[PATH_MAX];
-	char tmp[PATH_MAX];
 	char *name, *version;
+	struct pkgentry *pe;
 	FILE *fp;
-	struct archive *ar;
-	struct archive_entry *entry;
-	int r;
 
-	if (!realpath(file, pkgpath)) {
-		weprintf("realpath %s:", file);
-		return -1;
-	}
-
-	ar = archive_read_new();
-
-	archive_read_support_filter_gzip(ar);
-	archive_read_support_filter_bzip2(ar);
-	archive_read_support_filter_xz(ar);
-	archive_read_support_format_tar(ar);
-
-	if (archive_read_open_filename(ar, pkgpath, ARCHIVEBUFSIZ) < 0) {
-		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
-			 archive_error_string(ar));
-		return -1;
-	}
-
-	parse_name(pkgpath, &name);
-	parse_version(pkgpath, &version);
+	parse_name(pkg->path, &name);
+	parse_version(pkg->path, &version);
 	estrlcpy(path, db->path, sizeof(path));
 	estrlcat(path, "/", sizeof(path));
 	estrlcat(path, name, sizeof(path));
@@ -141,39 +119,20 @@ db_add(struct db *db, const char *file)
 		estrlcat(path, "#", sizeof(path));
 		estrlcat(path, version, sizeof(path));
 	}
+	free(name);
+	free(version);
 
 	if (!(fp = fopen(path, "w"))) {
 		weprintf("fopen %s:", path);
-		free(name);
-		free(version);
 		return -1;
 	}
 
-	while (1) {
-		r = archive_read_next_header(ar, &entry);
-		if (r == ARCHIVE_EOF)
-			break;
-		if (r != ARCHIVE_OK) {
-			weprintf("archive_read_next_header: %s\n",
-				 archive_error_string(ar));
-			free(name);
-			free(version);
-			return -1;
-		}
-
-		estrlcpy(tmp, db->prefix, sizeof(tmp));
-		estrlcat(tmp, "/", sizeof(tmp));
-		estrlcat(tmp, archive_entry_pathname(entry),
-			 sizeof(tmp));
-
+	for (pe = pkg->head; pe; pe = pe->next) {
 		if (vflag == 1)
-			printf("installed %s\n", tmp);
-		fputs(archive_entry_pathname(entry), fp);
+			printf("installed %s\n", pe->path);
+		fputs(pe->path, fp);
 		fputc('\n', fp);
 	}
-
-	free(name);
-	free(version);
 
 	if (vflag == 1)
 		printf("adding %s\n", path);
@@ -181,8 +140,6 @@ db_add(struct db *db, const char *file)
 	if (fsync(fileno(fp)) < 0)
 		weprintf("fsync %s:", path);
 	fclose(fp);
-
-	archive_read_free(ar);
 
 	return 0;
 }
@@ -262,69 +219,6 @@ db_links(struct db *db, const char *path)
 	return links;
 }
 
-/* Check if the contents of package `file'
- * collide with corresponding entries in the filesystem */
-int
-db_collisions(struct db *db, const char *file)
-{
-	char pkgpath[PATH_MAX];
-	char path[PATH_MAX];
-	char resolvedpath[PATH_MAX];
-	struct archive *ar;
-	struct archive_entry *entry;
-	struct stat sb;
-	int ok = 0, r;
-
-	if (!realpath(file, pkgpath)) {
-		weprintf("realpath %s:", file);
-		return -1;
-	}
-
-	ar = archive_read_new();
-
-	archive_read_support_filter_gzip(ar);
-	archive_read_support_filter_bzip2(ar);
-	archive_read_support_filter_xz(ar);
-	archive_read_support_format_tar(ar);
-
-	if (archive_read_open_filename(ar, pkgpath, ARCHIVEBUFSIZ) < 0) {
-		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
-			 archive_error_string(ar));
-		return -1;
-	}
-
-	while (1) {
-		r = archive_read_next_header(ar, &entry);
-		if (r == ARCHIVE_EOF)
-			break;
-		if (r != ARCHIVE_OK) {
-			weprintf("archive_read_next_header: %s\n",
-				 archive_error_string(ar));
-			return -1;
-		}
-		estrlcpy(path, db->prefix, sizeof(path));
-		estrlcat(path, "/", sizeof(path));
-		estrlcat(path, archive_entry_pathname(entry), sizeof(path));
-		if (access(path, F_OK) == 0) {
-			if (stat(path, &sb) < 0) {
-				weprintf("lstat %s:", archive_entry_pathname(entry));
-				return -1;
-			}
-			if (S_ISDIR(sb.st_mode) == 0) {
-				if (realpath(path, resolvedpath))
-					weprintf("%s exists\n", resolvedpath);
-				else
-					weprintf("%s exists\n", path);
-				ok = -1;
-			}
-		}
-	}
-
-	archive_read_free(ar);
-
-	return ok;
-}
-
 /* Load the package contents for the given `filename' */
 struct pkg *
 pkg_load(struct db *db, const char *filename)
@@ -354,8 +248,6 @@ pkg_load(struct db *db, const char *filename)
 	}
 
 	pkg = pkg_new(path, name, version);
-	if (!pkg)
-		return NULL;
 
 	if (!(fp = fopen(pkg->path, "r"))) {
 		weprintf("fopen %s:", pkg->path);
@@ -391,6 +283,65 @@ pkg_load(struct db *db, const char *filename)
 		return NULL;
 	}
 	fclose(fp);
+	return pkg;
+}
+
+struct pkg *
+pkg_load_file(struct db *db, const char *filename)
+{
+	char path[PATH_MAX];
+	char *name, *version;
+	struct pkg *pkg;
+	struct pkgentry *pe;
+	struct archive *ar;
+	struct archive_entry *entry;
+	int r;
+
+	if (!realpath(filename, path)) {
+		weprintf("realpath %s:", filename);
+		return NULL;
+	}
+
+	parse_name(path, &name);
+	parse_version(path, &version);
+	pkg = pkg_new(path, name, version);
+	free(name);
+	free(version);
+
+	ar = archive_read_new();
+
+	archive_read_support_filter_gzip(ar);
+	archive_read_support_filter_bzip2(ar);
+	archive_read_support_filter_xz(ar);
+	archive_read_support_format_tar(ar);
+
+	if (archive_read_open_filename(ar, pkg->path, ARCHIVEBUFSIZ) < 0) {
+		weprintf("archive_read_open_filename %s: %s\n", pkg->path,
+			 archive_error_string(ar));
+		pkg_free(pkg);
+		return NULL;
+	}
+
+	while (1) {
+		r = archive_read_next_header(ar, &entry);
+		if (r == ARCHIVE_EOF)
+			break;
+		if (r != ARCHIVE_OK) {
+			weprintf("archive_read_next_header: %s\n",
+				 archive_error_string(ar));
+			pkg_free(pkg);
+			return NULL;
+		}
+		pe = emalloc(sizeof(*pe));
+		estrlcpy(pe->path, db->prefix, sizeof(pe->path));
+		estrlcat(pe->path, "/", sizeof(pe->path));
+		estrlcat(pe->path, archive_entry_pathname(entry), sizeof(pe->path));
+		pe->next = pkg->head;
+		pkg->head = pe;
+	}
+
+	archive_read_free(ar);
+
 	return pkg;
 }
 
@@ -538,6 +489,35 @@ pkg_remove(struct db *db, struct pkg *pkg)
 	pkg->deleted = 1;
 
 	return 0;
+}
+
+/* Check if the contents of package `pkg'
+ * collide with corresponding entries in the filesystem */
+int
+pkg_collisions(struct pkg *pkg)
+{
+	char resolvedpath[PATH_MAX];
+	struct pkgentry *pe;
+	struct stat sb;
+	int ok = 0;
+
+	for (pe = pkg->head; pe; pe = pe->next) {
+		if (access(pe->path, F_OK) == 0) {
+			if (stat(pe->path, &sb) < 0) {
+				weprintf("lstat %s:", pe->path);
+				return -1;
+			}
+			if (S_ISDIR(sb.st_mode) == 0) {
+				if (realpath(pe->path, resolvedpath))
+					weprintf("%s exists\n", resolvedpath);
+				else
+					weprintf("%s exists\n", pe->path);
+				ok = -1;
+			}
+		}
+	}
+
+	return ok;
 }
 
 /* Create a new package instance */

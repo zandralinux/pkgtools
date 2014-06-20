@@ -30,16 +30,17 @@ extern int vflag;
 
 struct db *db_new(const char *);
 int db_free(struct db *);
-int db_add(struct db *, const char *);
+int db_add(struct db *, struct pkg *);
 int db_rm(struct pkg *);
 int db_load(struct db *);
+struct pkg *pkg_load_file(struct db *, const char *);
 int db_walk(struct db *, int (*)(struct db *, struct pkg *, void *), void *);
 int db_links(struct db *, const char *);
-int db_collisions(struct db *, const char *);
 
 struct pkg *pkg_load(struct db *, const char *);
 int pkg_install(struct db *, const char *);
 int pkg_remove(struct db *, struct pkg *);
+int pkg_collisions(struct pkg *);
 struct pkg *pkg_new(const char *, const char *, const char *);
 void pkg_free(struct pkg *);
 

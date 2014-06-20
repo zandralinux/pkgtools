@@ -5,8 +5,6 @@
 #include "db.h"
 #include "util.h"
 
-static int collisions_cb(struct db *, struct pkg *, void *);
-
 static void
 usage(void)
 {
@@ -22,6 +20,7 @@ int
 main(int argc, char *argv[])
 {
 	struct db *db;
+	struct pkg *pkg;
 	char path[PATH_MAX];
 	char *prefix = "/";
 	int i, r;
@@ -59,15 +58,16 @@ main(int argc, char *argv[])
 		}
 		if (vflag == 1)
 			printf("installing %s\n", path);
+		pkg = pkg_load_file(db, path);
 		if (fflag == 0) {
-			r = db_walk(db, collisions_cb, path);
-			if (r < 0) {
+			if (pkg_collisions(pkg) < 0) {
 				db_free(db);
 				printf("not installed %s\n", path);
 				exit(EXIT_FAILURE);
 			}
 		}
-		db_add(db, path);
+		db_add(db, pkg);
+		/* TODO: fix pkg_install() to work with struct pkg */
 		pkg_install(db, path);
 		printf("installed %s\n", path);
 	}
@@ -75,13 +75,4 @@ main(int argc, char *argv[])
 	db_free(db);
 
 	return EXIT_SUCCESS;
-}
-
-static int
-collisions_cb(struct db *db, struct pkg *pkg, void *file)
-{
-	(void) pkg;
-	if (db_collisions(db, file) < 0)
-		return -1;
-	return 0;
 }
