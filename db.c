@@ -254,9 +254,10 @@ pkg_load(struct db *db, const char *filename)
 		}
 
 		pe = emalloc(sizeof(*pe));
-		estrlcpy(pe->path, db->prefix, sizeof(pe->path));
-		estrlcat(pe->path, "/", sizeof(pe->path));
-		estrlcat(pe->path, buf, sizeof(pe->path));
+		estrlcpy(path, db->prefix, sizeof(path));
+		estrlcat(path, "/", sizeof(path));
+		estrlcat(path, buf, sizeof(path));
+		realpath(path, pe->path);
 		estrlcpy(pe->rpath, buf, sizeof(pe->rpath));
 		pe->next = pkg->head;
 		pkg->head = pe;
@@ -320,10 +321,11 @@ pkg_load_file(struct db *db, const char *filename)
 			return NULL;
 		}
 		pe = emalloc(sizeof(*pe));
-		estrlcpy(pe->path, db->prefix, sizeof(pe->path));
-		estrlcat(pe->path, "/", sizeof(pe->path));
-		estrlcat(pe->path, archive_entry_pathname(entry),
-			 sizeof(pe->path));
+		estrlcpy(path, db->prefix, sizeof(path));
+		estrlcat(path, "/", sizeof(path));
+		estrlcat(path, archive_entry_pathname(entry),
+			 sizeof(path));
+		realpath(path, pe->path);
 		estrlcpy(pe->rpath, archive_entry_pathname(entry),
 			 sizeof(pe->rpath));
 		pe->next = pkg->head;
