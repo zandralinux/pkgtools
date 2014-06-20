@@ -78,11 +78,10 @@ own_pkg_cb(struct db *db, struct pkg *pkg, void *file)
 	struct pkgentry *pe;
 	struct stat sb1, sb2;
 
+	(void) db;
+
 	if (lstat(path, &sb1) < 0)
 		eprintf("lstat %s:", path);
-
-	if (pkg_load(db, pkg) < 0)
-		exit(EXIT_FAILURE);
 
 	for (pe = pkg->head; pe; pe = pe->next) {
 		if (lstat(pe->path, &sb2) < 0) {
