@@ -35,7 +35,7 @@ int vflag = 0;
 
 /* Request access to the db and initialize the context */
 struct db *
-db_attach(const char *prefix)
+db_new(const char *prefix)
 {
 	struct db *db;
 	struct sigaction sa;
@@ -79,90 +79,26 @@ db_attach(const char *prefix)
 	return db;
 }
 
-/* Load the entire db in memory */
+/* Free the db context and release resources */
 int
-db_load(struct db *db)
+db_free(struct db *db)
 {
-	struct pkg *pkg;
-	struct dirent *dp;
+	struct pkg *pkg, *tmp;
 
-	while ((dp = readdir(db->pkgdir))) {
-		if (strcmp(dp->d_name, ".") == 0 ||
-		    strcmp(dp->d_name, "..") == 0)
-			continue;
-		pkg = pkg_new(dp->d_name);
-		if (pkg_load(db, pkg) < 0) {
-			pkg_free(pkg);
-			return -1;
-		}
-		pkg->next = db->head;
-		db->head = pkg;
+	pkg = db->head;
+	while (pkg) {
+		tmp = pkg->next;
+		pkg_free(pkg);
+		pkg = tmp;
 	}
-
+	if (flock(dirfd(db->pkgdir), LOCK_UN) < 0) {
+		weprintf("flock %s:", db->path);
+		return -1;
+	}
+	closedir(db->pkgdir);
+	rej_free(db->rejrules);
+	free(db);
 	return 0;
-}
-
-/* Check if the contents of package `file'
- * collide with corresponding entries in the filesystem */
-int
-db_collisions(struct db *db, const char *file)
-{
-	char pkgpath[PATH_MAX];
-	char path[PATH_MAX];
-	char resolvedpath[PATH_MAX];
-	struct archive *ar;
-	struct archive_entry *entry;
-	struct stat sb;
-	int ok = 0, r;
-
-	if (!realpath(file, pkgpath)) {
-		weprintf("realpath %s:", file);
-		return -1;
-	}
-
-	ar = archive_read_new();
-
-	archive_read_support_filter_gzip(ar);
-	archive_read_support_filter_bzip2(ar);
-	archive_read_support_filter_xz(ar);
-	archive_read_support_format_tar(ar);
-
-	if (archive_read_open_filename(ar, pkgpath, ARCHIVEBUFSIZ) < 0) {
-		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
-			 archive_error_string(ar));
-		return -1;
-	}
-
-	while (1) {
-		r = archive_read_next_header(ar, &entry);
-		if (r == ARCHIVE_EOF)
-			break;
-		if (r != ARCHIVE_OK) {
-			weprintf("archive_read_next_header: %s\n",
-				 archive_error_string(ar));
-			return -1;
-		}
-		estrlcpy(path, db->prefix, sizeof(path));
-		estrlcat(path, "/", sizeof(path));
-		estrlcat(path, archive_entry_pathname(entry), sizeof(path));
-		if (access(path, F_OK) == 0) {
-			if (stat(path, &sb) < 0) {
-				weprintf("lstat %s:", archive_entry_pathname(entry));
-				return -1;
-			}
-			if (S_ISDIR(sb.st_mode) == 0) {
-				if (realpath(path, resolvedpath))
-					weprintf("%s exists\n", resolvedpath);
-				else
-					weprintf("%s exists\n", path);
-				ok = -1;
-			}
-		}
-	}
-
-	archive_read_free(ar);
-
-	return ok;
 }
 
 /* Update the db entry on disk for package `file' */
@@ -251,6 +187,59 @@ db_add(struct db *db, const char *file)
 	return 0;
 }
 
+/* Physically unlink the db entry for `file' */
+int
+db_rm(struct db *db, const char *name)
+{
+	struct pkg *pkg;
+	char path[PATH_MAX];
+
+	for (pkg = db->head; pkg; pkg = pkg->next) {
+		if (pkg->deleted == 1 && strcmp(pkg->name, name) == 0) {
+			estrlcpy(path, db->path, sizeof(path));
+			estrlcat(path, "/", sizeof(path));
+			estrlcat(path, pkg->name, sizeof(path));
+			if (pkg->version) {
+				estrlcat(path, "#", sizeof(path));
+				estrlcat(path, pkg->version,
+					 sizeof(path));
+			}
+			if (vflag == 1)
+				printf("removing %s\n", path);
+			if (remove(path) < 0) {
+				weprintf("remove %s:", path);
+				return -1;
+			}
+			sync();
+			break;
+		}
+	}
+	return 0;
+}
+
+/* Load the entire db in memory */
+int
+db_load(struct db *db)
+{
+	struct pkg *pkg;
+	struct dirent *dp;
+
+	while ((dp = readdir(db->pkgdir))) {
+		if (strcmp(dp->d_name, ".") == 0 ||
+		    strcmp(dp->d_name, "..") == 0)
+			continue;
+		pkg = pkg_new(dp->d_name);
+		if (pkg_load(db, pkg) < 0) {
+			pkg_free(pkg);
+			return -1;
+		}
+		pkg->next = db->head;
+		db->head = pkg;
+	}
+
+	return 0;
+}
+
 /* Walk through all the db entries and call `cb' for each one */
 int
 db_walk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
@@ -289,26 +278,67 @@ db_links(struct db *db, const char *path)
 	return links;
 }
 
-/* Free the db context and release resources */
+/* Check if the contents of package `file'
+ * collide with corresponding entries in the filesystem */
 int
-db_detach(struct db *db)
+db_collisions(struct db *db, const char *file)
 {
-	struct pkg *pkg, *tmp;
+	char pkgpath[PATH_MAX];
+	char path[PATH_MAX];
+	char resolvedpath[PATH_MAX];
+	struct archive *ar;
+	struct archive_entry *entry;
+	struct stat sb;
+	int ok = 0, r;
 
-	pkg = db->head;
-	while (pkg) {
-		tmp = pkg->next;
-		pkg_free(pkg);
-		pkg = tmp;
-	}
-	if (flock(dirfd(db->pkgdir), LOCK_UN) < 0) {
-		weprintf("flock %s:", db->path);
+	if (!realpath(file, pkgpath)) {
+		weprintf("realpath %s:", file);
 		return -1;
 	}
-	closedir(db->pkgdir);
-	rej_free(db->rejrules);
-	free(db);
-	return 0;
+
+	ar = archive_read_new();
+
+	archive_read_support_filter_gzip(ar);
+	archive_read_support_filter_bzip2(ar);
+	archive_read_support_filter_xz(ar);
+	archive_read_support_format_tar(ar);
+
+	if (archive_read_open_filename(ar, pkgpath, ARCHIVEBUFSIZ) < 0) {
+		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
+			 archive_error_string(ar));
+		return -1;
+	}
+
+	while (1) {
+		r = archive_read_next_header(ar, &entry);
+		if (r == ARCHIVE_EOF)
+			break;
+		if (r != ARCHIVE_OK) {
+			weprintf("archive_read_next_header: %s\n",
+				 archive_error_string(ar));
+			return -1;
+		}
+		estrlcpy(path, db->prefix, sizeof(path));
+		estrlcat(path, "/", sizeof(path));
+		estrlcat(path, archive_entry_pathname(entry), sizeof(path));
+		if (access(path, F_OK) == 0) {
+			if (stat(path, &sb) < 0) {
+				weprintf("lstat %s:", archive_entry_pathname(entry));
+				return -1;
+			}
+			if (S_ISDIR(sb.st_mode) == 0) {
+				if (realpath(path, resolvedpath))
+					weprintf("%s exists\n", resolvedpath);
+				else
+					weprintf("%s exists\n", path);
+				ok = -1;
+			}
+		}
+	}
+
+	archive_read_free(ar);
+
+	return ok;
 }
 
 /* Load the package contents for `pkg' */
@@ -519,36 +549,6 @@ pkg_remove(struct db *db, const char *name)
 
 	pkg->deleted = 1;
 
-	return 0;
-}
-
-/* Physically unlink the db entry for `file' */
-int
-db_rm(struct db *db, const char *name)
-{
-	struct pkg *pkg;
-	char path[PATH_MAX];
-
-	for (pkg = db->head; pkg; pkg = pkg->next) {
-		if (pkg->deleted == 1 && strcmp(pkg->name, name) == 0) {
-			estrlcpy(path, db->path, sizeof(path));
-			estrlcat(path, "/", sizeof(path));
-			estrlcat(path, pkg->name, sizeof(path));
-			if (pkg->version) {
-				estrlcat(path, "#", sizeof(path));
-				estrlcat(path, pkg->version,
-					 sizeof(path));
-			}
-			if (vflag == 1)
-				printf("removing %s\n", path);
-			if (remove(path) < 0) {
-				weprintf("remove %s:", path);
-				return -1;
-			}
-			sync();
-			break;
-		}
-	}
 	return 0;
 }
 

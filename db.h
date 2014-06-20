@@ -27,21 +27,24 @@ struct pkg {
 extern int fflag;
 extern int vflag;
 
-struct db *db_attach(const char *);
-int db_load(struct db *);
-int db_collisions(struct db *, const char *);
+struct db *db_new(const char *);
+int db_free(struct db *);
 int db_add(struct db *, const char *);
+int db_rm(struct db *, const char *);
+int db_load(struct db *);
 int db_walk(struct db *, int (*)(struct db *, struct pkg *, void *), void *);
 int db_links(struct db *, const char *);
-int db_detach(struct db *);
+int db_collisions(struct db *, const char *);
+
 int pkg_load(struct db *, struct pkg *);
 int pkg_install(struct db *, const char *);
 int pkg_remove(struct db *, const char *);
-int db_rm(struct db *, const char *);
 struct pkg *pkg_new(char *);
 void pkg_free(struct pkg *);
+
 void parse_version(const char *, char **);
 void parse_name(const char *, char **);
+
 void rej_free(struct rejrule *);
 struct rejrule * rej_load(const char *);
 int rej_match(struct db *, const char *);

@@ -45,12 +45,12 @@ main(int argc, char *argv[])
 	if (oflag == 0 || argc < 1)
 		usage();
 
-	db = db_attach(prefix);
+	db = db_new(prefix);
 	if (!db)
 		exit(EXIT_FAILURE);
 	r = db_load(db);
 	if (r < 0) {
-		db_detach(db);
+		db_free(db);
 		exit(EXIT_FAILURE);
 	}
 
@@ -61,12 +61,12 @@ main(int argc, char *argv[])
 		}
 		r = db_walk(db, own_pkg_cb, path);
 		if (r < 0) {
-			db_detach(db);
+			db_free(db);
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	db_detach(db);
+	db_free(db);
 
 	return EXIT_SUCCESS;
 }

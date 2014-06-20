@@ -43,19 +43,19 @@ main(int argc, char *argv[])
 	if (argc < 1)
 		usage();
 
-	db = db_attach(prefix);
+	db = db_new(prefix);
 	if (!db)
 		exit(EXIT_FAILURE);
 	r = db_load(db);
 	if (r < 0) {
-		db_detach(db);
+		db_free(db);
 		exit(EXIT_FAILURE);
 	}
 
 	for (i = 0; i < argc; i++) {
 		r = db_walk(db, pkg_remove_cb, argv[i]);
 		if (r < 0) {
-			db_detach(db);
+			db_free(db);
 			exit(EXIT_FAILURE);
 		} else if (r > 0) {
 			db_rm(db, argv[i]);
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 		}
 	}
 
-	db_detach(db);
+	db_free(db);
 
 	return EXIT_SUCCESS;
 }

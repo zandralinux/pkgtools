@@ -43,12 +43,12 @@ main(int argc, char *argv[])
 	if (argc < 1)
 		usage();
 
-	db = db_attach(prefix);
+	db = db_new(prefix);
 	if (!db)
 		exit(EXIT_FAILURE);
 	r = db_load(db);
 	if (r < 0) {
-		db_detach(db);
+		db_free(db);
 		exit(EXIT_FAILURE);
 	}
 
@@ -62,7 +62,7 @@ main(int argc, char *argv[])
 		if (fflag == 0) {
 			r = db_walk(db, collisions_cb, path);
 			if (r < 0) {
-				db_detach(db);
+				db_free(db);
 				printf("not installed %s\n", path);
 				exit(EXIT_FAILURE);
 			}
@@ -72,7 +72,7 @@ main(int argc, char *argv[])
 		printf("installed %s\n", path);
 	}
 
-	db_detach(db);
+	db_free(db);
 
 	return EXIT_SUCCESS;
 }
