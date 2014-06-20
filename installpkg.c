@@ -63,6 +63,7 @@ main(int argc, char *argv[])
 			r = dbwalk(db, fscollidepkg, path);
 			if (r < 0) {
 				dbfree(db);
+				printf("not installed %s\n", path);
 				exit(EXIT_FAILURE);
 			}
 		}

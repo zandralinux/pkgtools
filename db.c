@@ -115,6 +115,7 @@ dbfscollide(struct db *db, const char *file)
 {
 	char pkgpath[PATH_MAX];
 	char path[PATH_MAX];
+	char resolvedpath[PATH_MAX];
 	struct archive *ar;
 	struct archive_entry *entry;
 	struct stat sb;
@@ -156,7 +157,10 @@ dbfscollide(struct db *db, const char *file)
 				return -1;
 			}
 			if (S_ISDIR(sb.st_mode) == 0) {
-				weprintf("%s exists\n", path);
+				if(realpath(path, resolvedpath))
+					weprintf("%s exists\n", resolvedpath);
+				else
+					weprintf("%s exists\n", path);
 				ok = -1;
 			}
 		}
