@@ -31,7 +31,7 @@ struct db {
 int fflag = 0;
 int vflag = 0;
 
-/* Request access to the db and initialize the context */
+/* Initialize the db context */
 struct db *
 db_new(const char *prefix)
 {
@@ -87,7 +87,7 @@ db_free(struct db *db)
 	return 0;
 }
 
-/* Update the db entry on disk for package `pkg' */
+/* Update the db entry on disk for the given package */
 int
 db_add(struct db *db, struct pkg *pkg)
 {
@@ -130,7 +130,7 @@ db_add(struct db *db, struct pkg *pkg)
 	return 0;
 }
 
-/* Physically unlink the db entry for `pkg' */
+/* Physically unlink the db entry for the given package */
 int
 db_rm(struct pkg *pkg)
 {
@@ -146,7 +146,7 @@ db_rm(struct pkg *pkg)
 	return 0;
 }
 
-/* Load the entire db in memory */
+/* Load all packages in the db */
 int
 db_load(struct db *db)
 {
@@ -167,7 +167,7 @@ db_load(struct db *db)
 	return 0;
 }
 
-/* Walk through all the db entries and call `cb' for each one */
+/* Walk through all packages in the db and call `cb' for each one */
 int
 db_walk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 {
@@ -187,7 +187,7 @@ db_walk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 	return 0;
 }
 
-/* Return the number of packages that have references to `path' */
+/* Return the number of packages that have references to the given path */
 int
 db_links(struct db *db, const char *path)
 {
@@ -205,7 +205,7 @@ db_links(struct db *db, const char *path)
 	return links;
 }
 
-/* Load the package contents for the given `filename' */
+/* Create a package from the given db entry.  e.g. /var/pkg/pkg#version */
 struct pkg *
 pkg_load(struct db *db, const char *filename)
 {
@@ -272,6 +272,7 @@ pkg_load(struct db *db, const char *filename)
 	return pkg;
 }
 
+/* Create a package from a file.  e.g. /tmp/pkg#version.pkg.tgz */
 struct pkg *
 pkg_load_file(struct db *db, const char *filename)
 {
@@ -421,7 +422,7 @@ rm_empty_dir(const char *f, const struct stat *sb, int typeflag,
 	return 0;
 }
 
-/* Remove the package entries for `pkg' */
+/* Remove the package entries for the given package */
 int
 pkg_remove(struct db *db, struct pkg *pkg)
 {
@@ -480,7 +481,7 @@ pkg_remove(struct db *db, struct pkg *pkg)
 	return 0;
 }
 
-/* Check if the contents of package `pkg'
+/* Check if the contents of the given package
  * collide with corresponding entries in the filesystem */
 int
 pkg_collisions(struct pkg *pkg)
@@ -528,7 +529,7 @@ pkg_new(const char *path, const char *name, const char *version)
 	return pkg;
 }
 
-/* Release `pkg' instance */
+/* Release package instance */
 void
 pkg_free(struct pkg *pkg)
 {
@@ -545,6 +546,7 @@ pkg_free(struct pkg *pkg)
 	free(pkg);
 }
 
+/* Extract the package name from a filename.  e.g. /tmp/pkg#version.pkg.tgz */
 void
 parse_name(const char *path, char **name)
 {
@@ -574,6 +576,7 @@ err:
 		path);
 }
 
+/* Extract the package version from a filename.  e.g. /tmp/pkg#version.pkg.tgz */
 void
 parse_version(const char *path, char **version)
 {
@@ -606,6 +609,7 @@ err:
 		path);
 }
 
+/* Release the pre-loaded regexes */
 void
 rej_free(struct rejrule *list)
 {
@@ -619,6 +623,7 @@ rej_free(struct rejrule *list)
 	}
 }
 
+/* Parse reject.conf and pre-compute regexes */
 struct rejrule *
 rej_load(const char *prefix)
 {
@@ -675,6 +680,7 @@ rej_load(const char *prefix)
 	return list;
 }
 
+/* Match pre-computed regexes against the given filename */
 int
 rej_match(struct db *db, const char *file)
 {
