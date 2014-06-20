@@ -3,8 +3,6 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <ftw.h>
 #include <limits.h>
 #include <regex.h>
@@ -59,14 +57,6 @@ db_new(const char *prefix)
 		return NULL;
 	}
 
-	if (flock(dirfd(db->pkgdir), LOCK_EX | LOCK_NB) < 0) {
-		if (errno == EWOULDBLOCK)
-			weprintf("package db already locked\n");
-		else
-			weprintf("flock %s:", db->path);
-		free(db);
-		return NULL;
-	}
 	db->rejrules = rej_load(db->prefix);
 
 	memset(&sa, 0, sizeof(sa));
@@ -90,10 +80,6 @@ db_free(struct db *db)
 		tmp = pkg->next;
 		pkg_free(pkg);
 		pkg = tmp;
-	}
-	if (flock(dirfd(db->pkgdir), LOCK_UN) < 0) {
-		weprintf("flock %s:", db->path);
-		return -1;
 	}
 	closedir(db->pkgdir);
 	rej_free(db->rejrules);
