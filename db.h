@@ -30,7 +30,7 @@ extern int vflag;
 struct db *db_new(const char *);
 int db_free(struct db *);
 int db_add(struct db *, const char *);
-int db_rm(struct db *, const char *);
+int db_rm(struct db *, struct pkg *);
 int db_load(struct db *);
 int db_walk(struct db *, int (*)(struct db *, struct pkg *, void *), void *);
 int db_links(struct db *, const char *);

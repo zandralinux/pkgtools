@@ -187,33 +187,29 @@ db_add(struct db *db, const char *file)
 	return 0;
 }
 
-/* Physically unlink the db entry for `file' */
+/* Physically unlink the db entry for `pkg' */
 int
-db_rm(struct db *db, const char *name)
+db_rm(struct db *db, struct pkg *pkg)
 {
-	struct pkg *pkg;
 	char path[PATH_MAX];
 
-	for (pkg = db->head; pkg; pkg = pkg->next) {
-		if (pkg->deleted == 1 && strcmp(pkg->name, name) == 0) {
-			estrlcpy(path, db->path, sizeof(path));
-			estrlcat(path, "/", sizeof(path));
-			estrlcat(path, pkg->name, sizeof(path));
-			if (pkg->version) {
-				estrlcat(path, "#", sizeof(path));
-				estrlcat(path, pkg->version,
-					 sizeof(path));
-			}
-			if (vflag == 1)
-				printf("removing %s\n", path);
-			if (remove(path) < 0) {
-				weprintf("remove %s:", path);
-				return -1;
-			}
-			sync();
-			break;
-		}
+	if (pkg->deleted == 0)
+		return -1;
+	estrlcpy(path, db->path, sizeof(path));
+	estrlcat(path, "/", sizeof(path));
+	estrlcat(path, pkg->name, sizeof(path));
+	if (pkg->version) {
+		estrlcat(path, "#", sizeof(path));
+		estrlcat(path, pkg->version,
+			 sizeof(path));
 	}
+	if (vflag == 1)
+		printf("removing %s\n", path);
+	if (remove(path) < 0) {
+		weprintf("remove %s:", path);
+		return -1;
+	}
+	sync();
 	return 0;
 }
 
@@ -484,7 +480,7 @@ rm_empty_dir(const char *f, const struct stat *sb, int typeflag,
 	return 0;
 }
 
-/* Remove the package entries for `file' */
+/* Remove the package entries for `pkg' */
 int
 pkg_remove(struct db *db, struct pkg *pkg)
 {

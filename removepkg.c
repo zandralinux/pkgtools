@@ -57,10 +57,7 @@ main(int argc, char *argv[])
 		if (r < 0) {
 			db_free(db);
 			exit(EXIT_FAILURE);
-		} else if (r > 0) {
-			db_rm(db, argv[i]);
-			printf("removed %s\n", argv[i]);
-		} else {
+		} else if (r == 0) {
 			printf("%s is not installed\n", argv[i]);
 		}
 	}
@@ -76,6 +73,8 @@ pkg_remove_cb(struct db *db, struct pkg *pkg, void *name)
 	if (strcmp(pkg->name, name) == 0) {
 		if (pkg_remove(db, pkg) < 0)
 			return -1;
+		db_rm(db, pkg);
+		printf("removed %s\n", pkg->name);
 		return 1;
 	}
 	return 0;
