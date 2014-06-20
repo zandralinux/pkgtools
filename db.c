@@ -47,7 +47,7 @@ dbinit(const char *prefix)
 	db = emalloc(sizeof(*db));
 	db->head = NULL;
 
-	if(!realpath(prefix, db->prefix)) {
+	if (!realpath(prefix, db->prefix)) {
 		weprintf("realpath %s:", prefix);
 		free(db);
 		return NULL;
@@ -680,6 +680,10 @@ rejmatch(struct db *db, const char *file)
 	int match = 0, r;
 	regex_t preg;
 
+	/* Skip initial '.' of "./" */
+	if (strncmp(file, "./", 2) == 0)
+		file++;
+
 	estrlcpy(rejpath, db->prefix, sizeof(rejpath));
 	estrlcat(rejpath, "/etc/pkgtools/reject.conf", sizeof(rejpath));
 
@@ -687,10 +691,12 @@ rejmatch(struct db *db, const char *file)
 		return -1;
 
 	while ((len = getline(&buf, &sz, fp)) != -1) {
+		if (!len || buf[0] == '#' || buf[0] == '\n')
+			continue; /* skip empty lines and comments. */
 		if (len > 0 && buf[len - 1] == '\n')
 			buf[len - 1] = '\0';
-		/* Skip initial './' */
-		r = regcomp(&preg, buf + 2, REG_NOSUB | REG_EXTENDED);
+
+		r = regcomp(&preg, buf, REG_NOSUB | REG_EXTENDED);
 		if (r != 0) {
 			regerror(r, &preg, buf, len);
 			weprintf("invalid pattern: %s\n", buf);

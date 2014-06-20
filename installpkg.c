@@ -24,8 +24,7 @@ main(int argc, char *argv[])
 	struct db *db;
 	char path[PATH_MAX];
 	char *prefix = "/";
-	int r;
-	int i;
+	int i, r;
 
 	ARGBEGIN {
 	case 'v':
