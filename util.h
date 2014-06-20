@@ -6,8 +6,6 @@
 
 extern char *argv0;
 
-void lockdb(void);
-
 /* ealloc.c */
 void *ecalloc(size_t, size_t);
 void *emalloc(size_t size);
