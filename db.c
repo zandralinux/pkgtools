@@ -18,18 +18,20 @@
 #include "db.h"
 #include "util.h"
 
-#define DBPATH "/var/pkg"
+#define DBPATH        "/var/pkg"
+#define DBPATHREJECT  "/etc/pkgtools/reject.conf"
 #define ARCHIVEBUFSIZ BUFSIZ
-
-int fflag = 0;
-int vflag = 0;
 
 struct db {
 	DIR *pkgdir;
 	char prefix[PATH_MAX];
 	char path[PATH_MAX];
+	struct rejrule *rejrules;
 	struct pkg *head;
 };
+
+int fflag = 0;
+int vflag = 0;
 
 /* Request access to the db and initialize the context */
 struct db *
@@ -65,6 +67,7 @@ dbinit(const char *prefix)
 		free(db);
 		return NULL;
 	}
+	db->rejrules = rejload(db->prefix);
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = SIG_IGN;
@@ -303,6 +306,7 @@ dbfree(struct db *db)
 		return -1;
 	}
 	closedir(db->pkgdir);
+	rejfree(db->rejrules);
 	free(db);
 	return 0;
 }
@@ -649,26 +653,35 @@ err:
 		path);
 }
 
-int
-rejmatch(struct db *db, const char *file)
+void
+rejfree(struct rejrule *list)
 {
+	struct rejrule *rule, *tmp;
+	rule = list;
+	while(rule) {
+		tmp = rule->next;
+		regfree(&(rule->preg));
+		free(rule);
+		rule = tmp;
+	}
+}
+
+struct rejrule *
+rejload(const char *prefix)
+{
+	struct rejrule *rule, *next, *list = NULL;
 	char rejpath[PATH_MAX];
 	FILE *fp;
 	char *buf = NULL;
 	size_t sz = 0;
 	ssize_t len;
-	int match = 0, r;
-	regex_t preg;
+	int r;
 
-	/* Skip initial '.' of "./" */
-	if (strncmp(file, "./", 2) == 0)
-		file++;
-
-	estrlcpy(rejpath, db->prefix, sizeof(rejpath));
-	estrlcat(rejpath, "/etc/pkgtools/reject.conf", sizeof(rejpath));
+	estrlcpy(rejpath, prefix, sizeof(rejpath));
+	estrlcat(rejpath, DBPATHREJECT, sizeof(rejpath));
 
 	if (!(fp = fopen(rejpath, "r")))
-		return -1;
+		return NULL;
 
 	while ((len = getline(&buf, &sz, fp)) != -1) {
 		if (!len || buf[0] == '#' || buf[0] == '\n')
@@ -676,29 +689,56 @@ rejmatch(struct db *db, const char *file)
 		if (len > 0 && buf[len - 1] == '\n')
 			buf[len - 1] = '\0';
 
-		r = regcomp(&preg, buf, REG_NOSUB | REG_EXTENDED);
+		/* copy and add regex */
+		rule = emalloc(sizeof(*rule));
+		rule->next = NULL;
+
+		r = regcomp(&(rule->preg), buf, REG_NOSUB | REG_EXTENDED);
 		if (r != 0) {
-			regerror(r, &preg, buf, len);
+			regerror(r, &(rule->preg), buf, len);
 			weprintf("invalid pattern: %s\n", buf);
+			rejfree(list);
 			free(buf);
 			fclose(fp);
-			return -1;
+			return NULL;
 		}
-		r = regexec(&preg, file, 0, NULL, 0);
-		regfree(&preg);
-		if (r == REG_NOMATCH)
-			continue;
-		match = 1;
-		break;
+
+		/* append to list: first item? or append to previous rule */
+		if(!list)
+			list = next = rule;
+		else
+			next->next = rule;
+		next = rule;
 	}
 	free(buf);
 	if (ferror(fp)) {
 		weprintf("%s: read error:", rejpath);
 		fclose(fp);
-		return -1;
+		rejfree(list);
+		return NULL;
 	}
-
 	fclose(fp);
+
+	return list;
+}
+
+int
+rejmatch(struct db *db, const char *file)
+{
+	int match = 0, r;
+	struct rejrule *rule;
+
+	/* Skip initial '.' of "./" */
+	if (strncmp(file, "./", 2) == 0)
+		file++;
+
+	for(rule = db->rejrules; rule; rule = rule->next) {
+		r = regexec(&(rule->preg), file, 0, NULL, 0);
+		if (r != REG_NOMATCH) {
+			match = 1;
+			break;
+		}
+	}
 
 	return match;
 }

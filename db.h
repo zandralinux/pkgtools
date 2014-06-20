@@ -1,10 +1,19 @@
 /* See LICENSE file for copyright and license details. */
+
+#include <regex.h>
+#include <sys/types.h>
+
 struct pkgentry {
 	/* full path */
 	char path[PATH_MAX];
 	/* relative path */
 	char rpath[PATH_MAX];
 	struct pkgentry *next;
+};
+
+struct rejrule {
+	regex_t preg;
+	struct rejrule *next;
 };
 
 struct pkg {
@@ -33,4 +42,7 @@ struct pkg *pkgnew(char *);
 void pkgfree(struct pkg *);
 void parseversion(const char *, char **);
 void parsename(const char *, char **);
+void rejfree(struct rejrule *);
+struct rejrule * rejload(const char *);
 int rejmatch(struct db *, const char *);
+struct rejrule * rejload(const char *);
