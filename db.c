@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <ftw.h>
 #include <limits.h>
+#include <regex.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -367,6 +368,7 @@ dbpkgload(struct db *db, struct pkg *pkg)
 		estrlcpy(pe->path, db->prefix, sizeof(pe->path));
 		estrlcat(pe->path, "/", sizeof(pe->path));
 		estrlcat(pe->path, buf, sizeof(pe->path));
+		estrlcpy(pe->rpath, buf, sizeof(pe->rpath));
 		pe->next = pkg->head;
 		pkg->head = pe;
 	}
@@ -428,6 +430,10 @@ dbpkginstall(struct db *db, const char *file)
 				weprintf("chdir %s:", cwd);
 			return -1;
 		}
+		if (rejmatch(db, archive_entry_pathname(entry)) > 0) {
+			weprintf("rejecting %s\n", archive_entry_pathname(entry));
+			continue;
+		}
 		flags = ARCHIVE_EXTRACT_OWNER | ARCHIVE_EXTRACT_PERM |
 			ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_SECURE_NODOTDOT;
 		if (fflag == 1)
@@ -486,6 +492,11 @@ dbpkgremove(struct db *db, const char *name)
 	}
 
 	for (pe = pkg->head; pe; pe = pe->next) {
+		if (rejmatch(db, pe->rpath) > 0) {
+			weprintf("rejecting %s\n", pe->rpath);
+			continue;
+		}
+
 		if (lstat(pe->path, &sb) < 0) {
 			weprintf("lstat %s:", pe->path);
 			continue;
@@ -516,6 +527,8 @@ dbpkgremove(struct db *db, const char *name)
 	if (fflag == 1) {
 		/* prune empty directories as well */
 		for (pe = pkg->head; pe; pe = pe->next) {
+			if (rejmatch(db, pe->rpath) > 0)
+				continue;
 			if (dblinks(db, pe->path) > 1)
 				continue;
 			nftw(pe->path, rmemptydir, 1, FTW_DEPTH);
@@ -654,4 +667,52 @@ parseversion(const char *path, char **version)
 err:
 	eprintf("%s: invalid package filename\n",
 		path);
+}
+
+int
+rejmatch(struct db *db, const char *file)
+{
+	char rejpath[PATH_MAX];
+	FILE *fp;
+	char *buf = NULL;
+	size_t sz = 0;
+	ssize_t len;
+	int match = 0, r;
+	regex_t preg;
+
+	estrlcpy(rejpath, db->prefix, sizeof(rejpath));
+	estrlcat(rejpath, "/etc/pkgtools/reject.conf", sizeof(rejpath));
+
+	if (!(fp = fopen(rejpath, "r")))
+		return -1;
+
+	while ((len = getline(&buf, &sz, fp)) != -1) {
+		if (len > 0 && buf[len - 1] == '\n')
+			buf[len - 1] = '\0';
+		/* Skip initial './' */
+		r = regcomp(&preg, buf + 2, REG_NOSUB | REG_EXTENDED);
+		if (r != 0) {
+			regerror(r, &preg, buf, len);
+			weprintf("invalid pattern: %s\n", buf);
+			free(buf);
+			fclose(fp);
+			return -1;
+		}
+		r = regexec(&preg, file, 0, NULL, 0);
+		regfree(&preg);
+		if (r == REG_NOMATCH)
+			continue;
+		match = 1;
+		break;
+	}
+	free(buf);
+	if (ferror(fp)) {
+		weprintf("%s: read error:", rejpath);
+		fclose(fp);
+		return -1;
+	}
+
+	fclose(fp);
+
+	return match;
 }

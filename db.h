@@ -1,6 +1,9 @@
 /* See LICENSE file for copyright and license details. */
 struct pkgentry {
+	/* full path */
 	char path[PATH_MAX];
+	/* relative path */
+	char rpath[PATH_MAX];
 	struct pkgentry *next;
 };
 
@@ -29,3 +32,4 @@ struct pkg *pkgnew(char *);
 void pkgfree(struct pkg *);
 void parseversion(const char *, char **);
 void parsename(const char *, char **);
+int rejmatch(struct db *, const char *);
