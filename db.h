@@ -10,7 +10,9 @@ struct pkgentry {
 struct pkg {
 	char *name;
 	char *version;
+	int deleted;
 	struct pkgentry *head;
+	struct pkg *next;
 };
 
 extern int fflag;
@@ -23,7 +25,6 @@ int dbadd(struct db *, const char *);
 int dbwalk(struct db *, int (*)(struct db *, struct pkg *, void *), void *);
 int dblinks(struct db *, const char *);
 int dbfree(struct db *);
-void dbdump(struct db *);
 int dbpkgload(struct db *, struct pkg *);
 int dbpkginstall(struct db *, const char *);
 int dbpkgremove(struct db *, const char *);

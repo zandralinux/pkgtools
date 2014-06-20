@@ -24,17 +24,11 @@
 int fflag = 0;
 int vflag = 0;
 
-struct dbentry {
-	struct pkg *pkg;
-	int deleted;
-	struct dbentry *next;
-};
-
 struct db {
 	DIR *pkgdir;
 	char prefix[PATH_MAX];
 	char path[PATH_MAX];
-	struct dbentry *head;
+	struct pkg *head;
 };
 
 /* Request access to the db and initialize the context */
@@ -86,23 +80,20 @@ dbinit(const char *prefix)
 int
 dbload(struct db *db)
 {
-	struct dbentry *de;
+	struct pkg *pkg;
 	struct dirent *dp;
 
 	while ((dp = readdir(db->pkgdir))) {
 		if (strcmp(dp->d_name, ".") == 0 ||
 		    strcmp(dp->d_name, "..") == 0)
 			continue;
-		de = emalloc(sizeof(*de));
-		de->pkg = pkgnew(dp->d_name);
-		if (dbpkgload(db, de->pkg) < 0) {
-			pkgfree(de->pkg);
-			free(de);
+		pkg = pkgnew(dp->d_name);
+		if (dbpkgload(db, pkg) < 0) {
+			pkgfree(pkg);
 			return -1;
 		}
-		de->deleted = 0;
-		de->next = db->head;
-		db->head = de;
+		pkg->next = db->head;
+		db->head = pkg;
 	}
 
 	return 0;
@@ -261,13 +252,13 @@ dbadd(struct db *db, const char *file)
 int
 dbwalk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 {
-	struct dbentry *de;
+	struct pkg *pkg;
 	int r;
 
-	for (de = db->head; de; de = de->next) {
-		if (de->deleted == 1)
+	for (pkg = db->head; pkg; pkg = pkg->next) {
+		if (pkg->deleted == 1)
 			continue;
-		r = cb(db, de->pkg, data);
+		r = cb(db, pkg, data);
 		if (r < 0)
 			return -1;
 		/* terminate traversal */
@@ -281,14 +272,14 @@ dbwalk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 int
 dblinks(struct db *db, const char *path)
 {
-	struct dbentry *de;
+	struct pkg *pkg;
 	struct pkgentry *pe;
 	int links = 0;
 
-	for (de = db->head; de; de = de->next) {
-		if (de->deleted == 1)
+	for (pkg = db->head; pkg; pkg = pkg->next) {
+		if (pkg->deleted == 1)
 			continue;
-		for (pe = de->pkg->head; pe; pe = pe->next)
+		for (pe = pkg->head; pe; pe = pe->next)
 			if (strcmp(pe->path, path) == 0)
 				links++;
 	}
@@ -299,14 +290,13 @@ dblinks(struct db *db, const char *path)
 int
 dbfree(struct db *db)
 {
-	struct dbentry *de, *tmp;
+	struct pkg *pkg, *tmp;
 
-	de = db->head;
-	while (de) {
-		tmp = de->next;
-		pkgfree(de->pkg);
-		free(de);
-		de = tmp;
+	pkg = db->head;
+	while (pkg) {
+		tmp = pkg->next;
+		pkgfree(pkg);
+		pkg = tmp;
 	}
 	if (flock(dirfd(db->pkgdir), LOCK_UN) < 0) {
 		weprintf("flock %s:", db->path);
@@ -315,19 +305,6 @@ dbfree(struct db *db)
 	closedir(db->pkgdir);
 	free(db);
 	return 0;
-}
-
-/* Dump the db entries, for debugging purposes only */
-void
-dbdump(struct db *db)
-{
-	struct dbentry *de;
-
-	for (de = db->head; de; de = de->next) {
-		if (de->deleted == 1)
-			continue;
-		puts(de->pkg->name);
-	}
 }
 
 /* Load the package contents for `pkg' */
@@ -477,20 +454,17 @@ rmemptydir(const char *f, const struct stat *sb, int typeflag,
 int
 dbpkgremove(struct db *db, const char *name)
 {
-	struct dbentry *de;
 	struct pkg *pkg;
 	struct pkgentry *pe;
 	struct stat sb;
 
-	for (de = db->head; de; de = de->next) {
-		if (de->deleted == 1)
+	for (pkg = db->head; pkg; pkg = pkg->next) {
+		if (pkg->deleted == 1)
 			continue;
-		if (strcmp(de->pkg->name, name) == 0) {
-			pkg = de->pkg;
+		if (strcmp(pkg->name, name) == 0)
 			break;
-		}
 	}
-	if (!de) {
+	if (!pkg) {
 		weprintf("can't find %s in pkg db\n", name);
 		return -1;
 	}
@@ -539,7 +513,7 @@ dbpkgremove(struct db *db, const char *name)
 		}
 	}
 
-	de->deleted = 1;
+	pkg->deleted = 1;
 
 	return 0;
 }
@@ -548,17 +522,17 @@ dbpkgremove(struct db *db, const char *name)
 int
 dbrm(struct db *db, const char *name)
 {
-	struct dbentry *de;
+	struct pkg *pkg;
 	char path[PATH_MAX];
 
-	for (de = db->head; de; de = de->next) {
-		if (de->deleted == 1 && strcmp(de->pkg->name, name) == 0) {
+	for (pkg = db->head; pkg; pkg = pkg->next) {
+		if (pkg->deleted == 1 && strcmp(pkg->name, name) == 0) {
 			estrlcpy(path, db->path, sizeof(path));
 			estrlcat(path, "/", sizeof(path));
-			estrlcat(path, de->pkg->name, sizeof(path));
-			if (de->pkg->version) {
+			estrlcat(path, pkg->name, sizeof(path));
+			if (pkg->version) {
 				estrlcat(path, "#", sizeof(path));
-				estrlcat(path, de->pkg->version,
+				estrlcat(path, pkg->version,
 					 sizeof(path));
 			}
 			if (vflag == 1)
@@ -591,7 +565,9 @@ pkgnew(char *filename)
 		pkg->version = estrdup(p + 1);
 	else
 		pkg->version = NULL;
+	pkg->deleted = 0;
 	pkg->head = NULL;
+	pkg->next = NULL;
 	return pkg;
 }
 
