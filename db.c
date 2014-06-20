@@ -116,7 +116,7 @@ db_add(struct db *db, struct pkg *pkg)
 	for (pe = pkg->head; pe; pe = pe->next) {
 		if (vflag == 1)
 			printf("installed %s\n", pe->path);
-		fputs(pe->path, fp);
+		fputs(pe->rpath, fp);
 		fputc('\n', fp);
 	}
 
