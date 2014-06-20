@@ -6,7 +6,7 @@
 #include "db.h"
 #include "util.h"
 
-static int removepkg(struct db *, struct pkg *, void *);
+static int pkg_remove_cb(struct db *, struct pkg *, void *);
 
 static void
 usage(void)
@@ -43,40 +43,40 @@ main(int argc, char *argv[])
 	if (argc < 1)
 		usage();
 
-	db = dbinit(prefix);
+	db = db_attach(prefix);
 	if (!db)
 		exit(EXIT_FAILURE);
-	r = dbload(db);
+	r = db_load(db);
 	if (r < 0) {
-		dbfree(db);
+		db_detach(db);
 		exit(EXIT_FAILURE);
 	}
 
 	for (i = 0; i < argc; i++) {
-		r = dbwalk(db, removepkg, argv[i]);
+		r = db_walk(db, pkg_remove_cb, argv[i]);
 		if (r < 0) {
-			dbfree(db);
+			db_detach(db);
 			exit(EXIT_FAILURE);
 		} else if (r > 0) {
-			dbrm(db, argv[i]);
+			db_rm(db, argv[i]);
 			printf("removed %s\n", argv[i]);
 		} else {
 			printf("%s is not installed\n", argv[i]);
 		}
 	}
 
-	dbfree(db);
+	db_detach(db);
 
 	return EXIT_SUCCESS;
 }
 
 static int
-removepkg(struct db *db, struct pkg *pkg, void *name)
+pkg_remove_cb(struct db *db, struct pkg *pkg, void *name)
 {
 	char *n = name;
 
 	if (strcmp(pkg->name, n) == 0) {
-		if (dbpkgremove(db, n) < 0)
+		if (pkg_remove(db, n) < 0)
 			return -1;
 		return 1;
 	}

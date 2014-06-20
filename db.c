@@ -35,7 +35,7 @@ int vflag = 0;
 
 /* Request access to the db and initialize the context */
 struct db *
-dbinit(const char *prefix)
+db_attach(const char *prefix)
 {
 	struct db *db;
 	struct sigaction sa;
@@ -67,7 +67,7 @@ dbinit(const char *prefix)
 		free(db);
 		return NULL;
 	}
-	db->rejrules = rejload(db->prefix);
+	db->rejrules = rej_load(db->prefix);
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = SIG_IGN;
@@ -81,7 +81,7 @@ dbinit(const char *prefix)
 
 /* Load the entire db in memory */
 int
-dbload(struct db *db)
+db_load(struct db *db)
 {
 	struct pkg *pkg;
 	struct dirent *dp;
@@ -90,9 +90,9 @@ dbload(struct db *db)
 		if (strcmp(dp->d_name, ".") == 0 ||
 		    strcmp(dp->d_name, "..") == 0)
 			continue;
-		pkg = pkgnew(dp->d_name);
-		if (dbpkgload(db, pkg) < 0) {
-			pkgfree(pkg);
+		pkg = pkg_new(dp->d_name);
+		if (pkg_load(db, pkg) < 0) {
+			pkg_free(pkg);
 			return -1;
 		}
 		pkg->next = db->head;
@@ -105,7 +105,7 @@ dbload(struct db *db)
 /* Check if the contents of package `file'
  * collide with corresponding entries in the filesystem */
 int
-dbfscollide(struct db *db, const char *file)
+db_collisions(struct db *db, const char *file)
 {
 	char pkgpath[PATH_MAX];
 	char path[PATH_MAX];
@@ -167,7 +167,7 @@ dbfscollide(struct db *db, const char *file)
 
 /* Update the db entry on disk for package `file' */
 int
-dbadd(struct db *db, const char *file)
+db_add(struct db *db, const char *file)
 {
 	char pkgpath[PATH_MAX];
 	char path[PATH_MAX];
@@ -196,8 +196,8 @@ dbadd(struct db *db, const char *file)
 		return -1;
 	}
 
-	parsename(pkgpath, &name);
-	parseversion(pkgpath, &version);
+	parse_name(pkgpath, &name);
+	parse_version(pkgpath, &version);
 	estrlcpy(path, db->path, sizeof(path));
 	estrlcat(path, "/", sizeof(path));
 	estrlcat(path, name, sizeof(path));
@@ -253,7 +253,7 @@ dbadd(struct db *db, const char *file)
 
 /* Walk through all the db entries and call `cb' for each one */
 int
-dbwalk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
+db_walk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 {
 	struct pkg *pkg;
 	int r;
@@ -273,7 +273,7 @@ dbwalk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 
 /* Return the number of packages that have references to `path' */
 int
-dblinks(struct db *db, const char *path)
+db_links(struct db *db, const char *path)
 {
 	struct pkg *pkg;
 	struct pkgentry *pe;
@@ -291,14 +291,14 @@ dblinks(struct db *db, const char *path)
 
 /* Free the db context and release resources */
 int
-dbfree(struct db *db)
+db_detach(struct db *db)
 {
 	struct pkg *pkg, *tmp;
 
 	pkg = db->head;
 	while (pkg) {
 		tmp = pkg->next;
-		pkgfree(pkg);
+		pkg_free(pkg);
 		pkg = tmp;
 	}
 	if (flock(dirfd(db->pkgdir), LOCK_UN) < 0) {
@@ -306,14 +306,14 @@ dbfree(struct db *db)
 		return -1;
 	}
 	closedir(db->pkgdir);
-	rejfree(db->rejrules);
+	rej_free(db->rejrules);
 	free(db);
 	return 0;
 }
 
 /* Load the package contents for `pkg' */
 int
-dbpkgload(struct db *db, struct pkg *pkg)
+pkg_load(struct db *db, struct pkg *pkg)
 {
 	char path[PATH_MAX];
 	struct pkgentry *pe;
@@ -369,7 +369,7 @@ dbpkgload(struct db *db, struct pkg *pkg)
 
 /* Install the package `file' to disk */
 int
-dbpkginstall(struct db *db, const char *file)
+pkg_install(struct db *db, const char *file)
 {
 	char cwd[PATH_MAX];
 	char pkgpath[PATH_MAX];
@@ -415,7 +415,7 @@ dbpkginstall(struct db *db, const char *file)
 				weprintf("chdir %s:", cwd);
 			return -1;
 		}
-		if (rejmatch(db, archive_entry_pathname(entry)) > 0) {
+		if (rej_match(db, archive_entry_pathname(entry)) > 0) {
 			weprintf("rejecting %s\n", archive_entry_pathname(entry));
 			continue;
 		}
@@ -440,7 +440,7 @@ dbpkginstall(struct db *db, const char *file)
 }
 
 static int
-rmemptydir(const char *f, const struct stat *sb, int typeflag,
+rm_empty_dir(const char *f, const struct stat *sb, int typeflag,
 	   struct FTW *ftwbuf)
 {
 	(void) sb;
@@ -456,7 +456,7 @@ rmemptydir(const char *f, const struct stat *sb, int typeflag,
 
 /* Remove the package entries for `file' */
 int
-dbpkgremove(struct db *db, const char *name)
+pkg_remove(struct db *db, const char *name)
 {
 	struct pkg *pkg;
 	struct pkgentry *pe;
@@ -474,7 +474,7 @@ dbpkgremove(struct db *db, const char *name)
 	}
 
 	for (pe = pkg->head; pe; pe = pe->next) {
-		if (rejmatch(db, pe->rpath) > 0) {
+		if (rej_match(db, pe->rpath) > 0) {
 			weprintf("rejecting %s\n", pe->rpath);
 			continue;
 		}
@@ -509,11 +509,11 @@ dbpkgremove(struct db *db, const char *name)
 	if (fflag == 1) {
 		/* prune empty directories as well */
 		for (pe = pkg->head; pe; pe = pe->next) {
-			if (rejmatch(db, pe->rpath) > 0)
+			if (rej_match(db, pe->rpath) > 0)
 				continue;
-			if (dblinks(db, pe->path) > 1)
+			if (db_links(db, pe->path) > 1)
 				continue;
-			nftw(pe->path, rmemptydir, 1, FTW_DEPTH);
+			nftw(pe->path, rm_empty_dir, 1, FTW_DEPTH);
 		}
 	}
 
@@ -524,7 +524,7 @@ dbpkgremove(struct db *db, const char *name)
 
 /* Physically unlink the db entry for `file' */
 int
-dbrm(struct db *db, const char *name)
+db_rm(struct db *db, const char *name)
 {
 	struct pkg *pkg;
 	char path[PATH_MAX];
@@ -554,7 +554,7 @@ dbrm(struct db *db, const char *name)
 
 /* Create a new package instance */
 struct pkg *
-pkgnew(char *filename)
+pkg_new(char *filename)
 {
 	struct pkg *pkg;
 	char tmp[PATH_MAX], *p;
@@ -577,7 +577,7 @@ pkgnew(char *filename)
 
 /* Release `pkg' instance */
 void
-pkgfree(struct pkg *pkg)
+pkg_free(struct pkg *pkg)
 {
 	struct pkgentry *pe, *tmp;
 
@@ -593,7 +593,7 @@ pkgfree(struct pkg *pkg)
 }
 
 void
-parsename(const char *path, char **name)
+parse_name(const char *path, char **name)
 {
 	char tmp[PATH_MAX], filename[PATH_MAX], *p;
 
@@ -622,7 +622,7 @@ err:
 }
 
 void
-parseversion(const char *path, char **version)
+parse_version(const char *path, char **version)
 {
 	char tmp[PATH_MAX], filename[PATH_MAX], *p;
 
@@ -654,7 +654,7 @@ err:
 }
 
 void
-rejfree(struct rejrule *list)
+rej_free(struct rejrule *list)
 {
 	struct rejrule *rule, *tmp;
 	rule = list;
@@ -667,7 +667,7 @@ rejfree(struct rejrule *list)
 }
 
 struct rejrule *
-rejload(const char *prefix)
+rej_load(const char *prefix)
 {
 	struct rejrule *rule, *next, *list = NULL;
 	char rejpath[PATH_MAX];
@@ -697,7 +697,7 @@ rejload(const char *prefix)
 		if (r != 0) {
 			regerror(r, &(rule->preg), buf, len);
 			weprintf("invalid pattern: %s\n", buf);
-			rejfree(list);
+			rej_free(list);
 			free(buf);
 			fclose(fp);
 			return NULL;
@@ -714,7 +714,7 @@ rejload(const char *prefix)
 	if (ferror(fp)) {
 		weprintf("%s: read error:", rejpath);
 		fclose(fp);
-		rejfree(list);
+		rej_free(list);
 		return NULL;
 	}
 	fclose(fp);
@@ -723,7 +723,7 @@ rejload(const char *prefix)
 }
 
 int
-rejmatch(struct db *db, const char *file)
+rej_match(struct db *db, const char *file)
 {
 	int match = 0, r;
 	struct rejrule *rule;

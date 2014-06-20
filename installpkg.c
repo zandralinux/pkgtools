@@ -5,7 +5,7 @@
 #include "db.h"
 #include "util.h"
 
-static int fscollidepkg(struct db *, struct pkg *, void *);
+static int collisions_cb(struct db *, struct pkg *, void *);
 
 static void
 usage(void)
@@ -43,12 +43,12 @@ main(int argc, char *argv[])
 	if (argc < 1)
 		usage();
 
-	db = dbinit(prefix);
+	db = db_attach(prefix);
 	if (!db)
 		exit(EXIT_FAILURE);
-	r = dbload(db);
+	r = db_load(db);
 	if (r < 0) {
-		dbfree(db);
+		db_detach(db);
 		exit(EXIT_FAILURE);
 	}
 
@@ -60,28 +60,28 @@ main(int argc, char *argv[])
 		if (vflag == 1)
 			printf("installing %s\n", path);
 		if (fflag == 0) {
-			r = dbwalk(db, fscollidepkg, path);
+			r = db_walk(db, collisions_cb, path);
 			if (r < 0) {
-				dbfree(db);
+				db_detach(db);
 				printf("not installed %s\n", path);
 				exit(EXIT_FAILURE);
 			}
 		}
-		dbadd(db, path);
-		dbpkginstall(db, path);
+		db_add(db, path);
+		pkg_install(db, path);
 		printf("installed %s\n", path);
 	}
 
-	dbfree(db);
+	db_detach(db);
 
 	return EXIT_SUCCESS;
 }
 
 static int
-fscollidepkg(struct db *db, struct pkg *pkg, void *file)
+collisions_cb(struct db *db, struct pkg *pkg, void *file)
 {
 	(void) pkg;
-	if (dbfscollide(db, file) < 0)
+	if (db_collisions(db, file) < 0)
 		return -1;
 	return 0;
 }

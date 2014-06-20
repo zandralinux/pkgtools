@@ -10,7 +10,7 @@
 #include "db.h"
 #include "util.h"
 
-static int ownpkg(struct db *, struct pkg *, void *);
+static int own_pkg_cb(struct db *, struct pkg *, void *);
 
 static void
 usage(void)
@@ -45,12 +45,12 @@ main(int argc, char *argv[])
 	if (oflag == 0 || argc < 1)
 		usage();
 
-	db = dbinit(prefix);
+	db = db_attach(prefix);
 	if (!db)
 		exit(EXIT_FAILURE);
-	r = dbload(db);
+	r = db_load(db);
 	if (r < 0) {
-		dbfree(db);
+		db_detach(db);
 		exit(EXIT_FAILURE);
 	}
 
@@ -59,20 +59,20 @@ main(int argc, char *argv[])
 			weprintf("realpath %s:", argv[i]);
 			continue;
 		}
-		r = dbwalk(db, ownpkg, path);
+		r = db_walk(db, own_pkg_cb, path);
 		if (r < 0) {
-			dbfree(db);
+			db_detach(db);
 			exit(EXIT_FAILURE);
 		}
 	}
 
-	dbfree(db);
+	db_detach(db);
 
 	return EXIT_SUCCESS;
 }
 
 static int
-ownpkg(struct db *db, struct pkg *pkg, void *file)
+own_pkg_cb(struct db *db, struct pkg *pkg, void *file)
 {
 	char *path = file;
 	struct pkgentry *pe;
@@ -81,7 +81,7 @@ ownpkg(struct db *db, struct pkg *pkg, void *file)
 	if (lstat(path, &sb1) < 0)
 		eprintf("lstat %s:", path);
 
-	if (dbpkgload(db, pkg) < 0)
+	if (pkg_load(db, pkg) < 0)
 		exit(EXIT_FAILURE);
 
 	for (pe = pkg->head; pe; pe = pe->next) {
