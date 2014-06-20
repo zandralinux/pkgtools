@@ -38,7 +38,7 @@ int db_collisions(struct db *, const char *);
 
 int pkg_load(struct db *, struct pkg *);
 int pkg_install(struct db *, const char *);
-int pkg_remove(struct db *, const char *);
+int pkg_remove(struct db *, struct pkg *);
 struct pkg *pkg_new(char *);
 void pkg_free(struct pkg *);
 

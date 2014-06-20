@@ -73,10 +73,8 @@ main(int argc, char *argv[])
 static int
 pkg_remove_cb(struct db *db, struct pkg *pkg, void *name)
 {
-	char *n = name;
-
-	if (strcmp(pkg->name, n) == 0) {
-		if (pkg_remove(db, n) < 0)
+	if (strcmp(pkg->name, name) == 0) {
+		if (pkg_remove(db, pkg) < 0)
 			return -1;
 		return 1;
 	}

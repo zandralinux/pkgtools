@@ -486,22 +486,13 @@ rm_empty_dir(const char *f, const struct stat *sb, int typeflag,
 
 /* Remove the package entries for `file' */
 int
-pkg_remove(struct db *db, const char *name)
+pkg_remove(struct db *db, struct pkg *pkg)
 {
-	struct pkg *pkg;
 	struct pkgentry *pe;
 	struct stat sb;
 
-	for (pkg = db->head; pkg; pkg = pkg->next) {
-		if (pkg->deleted == 1)
-			continue;
-		if (strcmp(pkg->name, name) == 0)
-			break;
-	}
-	if (!pkg) {
-		weprintf("can't find %s in pkg db\n", name);
-		return -1;
-	}
+	if (pkg->deleted == 1)
+		return 0;
 
 	for (pe = pkg->head; pe; pe = pe->next) {
 		if (rej_match(db, pe->rpath) > 0) {
