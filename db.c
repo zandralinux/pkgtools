@@ -151,7 +151,7 @@ db_collisions(struct db *db, const char *file)
 				return -1;
 			}
 			if (S_ISDIR(sb.st_mode) == 0) {
-				if(realpath(path, resolvedpath))
+				if (realpath(path, resolvedpath))
 					weprintf("%s exists\n", resolvedpath);
 				else
 					weprintf("%s exists\n", path);
@@ -697,14 +697,14 @@ rej_load(const char *prefix)
 		if (r != 0) {
 			regerror(r, &(rule->preg), buf, len);
 			weprintf("invalid pattern: %s\n", buf);
-			rej_free(list);
 			free(buf);
 			fclose(fp);
+			rej_free(list);
 			return NULL;
 		}
 
 		/* append to list: first item? or append to previous rule */
-		if(!list)
+		if (!list)
 			list = next = rule;
 		else
 			next->next = rule;
@@ -725,7 +725,6 @@ rej_load(const char *prefix)
 int
 rej_match(struct db *db, const char *file)
 {
-	int match = 0, r;
 	struct rejrule *rule;
 
 	/* Skip initial '.' of "./" */
@@ -733,12 +732,9 @@ rej_match(struct db *db, const char *file)
 		file++;
 
 	for(rule = db->rejrules; rule; rule = rule->next) {
-		r = regexec(&(rule->preg), file, 0, NULL, 0);
-		if (r != REG_NOMATCH) {
-			match = 1;
-			break;
-		}
+		if (regexec(&(rule->preg), file, 0, NULL, 0) != REG_NOMATCH)
+			return 1;
 	}
 
-	return match;
+	return 0;
 }
