@@ -339,20 +339,14 @@ pkg_load_file(struct db *db, const char *filename)
 	return pkg;
 }
 
-/* Install the package `file' to disk */
+/* Install the given package */
 int
-pkg_install(struct db *db, const char *file)
+pkg_install(struct db *db, struct pkg *pkg)
 {
 	char cwd[PATH_MAX];
-	char pkgpath[PATH_MAX];
 	struct archive *ar;
 	struct archive_entry *entry;
 	int flags, r;
-
-	if (!realpath(file, pkgpath)) {
-		weprintf("realpath %s:", file);
-		return -1;
-	}
 
 	ar = archive_read_new();
 
@@ -361,8 +355,8 @@ pkg_install(struct db *db, const char *file)
 	archive_read_support_filter_xz(ar);
 	archive_read_support_format_tar(ar);
 
-	if (archive_read_open_filename(ar, pkgpath, ARCHIVEBUFSIZ) < 0) {
-		weprintf("archive_read_open_filename %s: %s\n", pkgpath,
+	if (archive_read_open_filename(ar, pkg->path, ARCHIVEBUFSIZ) < 0) {
+		weprintf("archive_read_open_filename %s: %s\n", pkg->path,
 			 archive_error_string(ar));
 		return -1;
 	}

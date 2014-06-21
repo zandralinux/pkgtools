@@ -67,8 +67,7 @@ main(int argc, char *argv[])
 			}
 		}
 		db_add(db, pkg);
-		/* TODO: fix pkg_install() to work with struct pkg */
-		pkg_install(db, path);
+		pkg_install(db, pkg);
 		printf("installed %s\n", path);
 	}
 
