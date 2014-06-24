@@ -13,6 +13,7 @@ db_new(const char *prefix)
 
 	db = emalloc(sizeof(*db));
 	TAILQ_INIT(&db->pkg_head);
+	TAILQ_INIT(&db->pkg_rm_head);
 
 	if (!realpath(prefix, db->prefix)) {
 		weprintf("realpath %s:", prefix);
@@ -53,6 +54,12 @@ db_free(struct db *db)
 		tmp = TAILQ_NEXT(pkg, entry);
 		pkg_free(pkg);
 	}
+
+	for (pkg = TAILQ_FIRST(&db->pkg_rm_head); pkg; pkg = tmp) {
+		tmp = TAILQ_NEXT(pkg, entry);
+		pkg_free(pkg);
+	}
+
 	closedir(db->pkgdir);
 	rej_free(db);
 	free(db);
@@ -104,16 +111,23 @@ db_add(struct db *db, struct pkg *pkg)
 
 /* Physically unlink the db entry for the given package */
 int
-db_rm(struct pkg *pkg)
+db_rm(struct db *db, struct pkg *pkg)
 {
-	if (vflag == 1)
-		printf("removing %s\n", pkg->path);
-	if (remove(pkg->path) < 0) {
-		weprintf("remove %s:", pkg->path);
-		return -1;
+	struct pkg *tmp;
+
+	TAILQ_FOREACH(tmp, &db->pkg_rm_head, entry) {
+		if (strcmp(tmp->name, pkg->name) == 0) {
+			if (vflag == 1)
+				printf("removing %s\n", pkg->path);
+			if (remove(pkg->path) < 0) {
+				weprintf("remove %s:", pkg->path);
+				return -1;
+			}
+			sync();
+			return 0;
+		}
 	}
-	sync();
-	return 0;
+	return -1;
 }
 
 /* Load all packages in the db */
@@ -430,6 +444,7 @@ pkg_remove(struct db *db, struct pkg *pkg)
 	}
 
 	TAILQ_REMOVE(&db->pkg_head, pkg, entry);
+	TAILQ_INSERT_TAIL(&db->pkg_rm_head, pkg, entry);
 
 	return 0;
 }

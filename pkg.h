@@ -47,6 +47,7 @@ struct db {
 	char path[PATH_MAX];		/* absolute path to DBPATH including db prefix */
 	TAILQ_HEAD(rejrule_head, rejrule) rejrule_head;
 	TAILQ_HEAD(pkg_head, pkg) pkg_head;
+	TAILQ_HEAD(pkg_rm_head, pkg) pkg_rm_head;
 };
 
 /* db.c */
@@ -60,7 +61,7 @@ extern char *argv0;
 struct db *db_new(const char *);
 int db_free(struct db *);
 int db_add(struct db *, struct pkg *);
-int db_rm(struct pkg *);
+int db_rm(struct db *, struct pkg *);
 int db_load(struct db *);
 struct pkg *pkg_load_file(struct db *, const char *);
 int db_walk(struct db *, int (*)(struct db *, struct pkg *, void *), void *);
