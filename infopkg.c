@@ -1,14 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-#include <errno.h>
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include "db.h"
-#include "util.h"
+#include "pkg.h"
 
 static int own_pkg_cb(struct db *, struct pkg *, void *);
 

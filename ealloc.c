@@ -1,7 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-#include <stdlib.h>
-#include <string.h>
-#include "util.h"
+#include "pkg.h"
 
 void *
 ecalloc(size_t nmemb, size_t size)

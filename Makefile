@@ -7,6 +7,7 @@ LIB = \
 	db.o      \
 	ealloc.o  \
 	eprintf.o \
+	reject.o  \
 	strlcat.o \
 	strlcpy.o
 
@@ -29,7 +30,7 @@ binlib: util.a
 
 bin: $(BIN)
 
-$(OBJ): util.h config.mk
+$(OBJ): pkg.h config.mk
 
 .o:
 	@echo LD $@

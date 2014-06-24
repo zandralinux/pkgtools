@@ -1,10 +1,5 @@
 /* See LICENSE file for copyright and license details. */
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "db.h"
-#include "util.h"
+#include "pkg.h"
 
 static int pkg_remove_cb(struct db *, struct pkg *, void *);
 
