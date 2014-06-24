@@ -3,7 +3,7 @@
 
 /* Create a package from the given db entry.  e.g. /var/pkg/pkg#version */
 struct pkg *
-pkg_load(struct db *db, const char *filename)
+pkg_load(struct db *db, const char *file)
 {
 	char path[PATH_MAX], tmp[PATH_MAX], *p;
 	char *name, *version;
@@ -14,7 +14,7 @@ pkg_load(struct db *db, const char *filename)
 	size_t sz = 0;
 	ssize_t len;
 
-	estrlcpy(tmp, filename, sizeof(tmp));
+	estrlcpy(tmp, file, sizeof(tmp));
 	p = strchr(tmp, '#');
 	if (p)
 		*p = '\0';
@@ -70,7 +70,7 @@ pkg_load(struct db *db, const char *filename)
 
 /* Create a package from a file.  e.g. /tmp/pkg#version.pkg.tgz */
 struct pkg *
-pkg_load_file(struct db *db, const char *filename)
+pkg_load_file(struct db *db, const char *file)
 {
 	char path[PATH_MAX];
 	char *name, *version;
@@ -80,8 +80,8 @@ pkg_load_file(struct db *db, const char *filename)
 	struct archive_entry *entry;
 	int r;
 
-	if (!realpath(filename, path)) {
-		weprintf("realpath %s:", filename);
+	if (!realpath(file, path)) {
+		weprintf("realpath %s:", file);
 		return NULL;
 	}
 
