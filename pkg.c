@@ -327,13 +327,11 @@ struct pkgentry *
 pkgentry_new(struct db *db, const char *file)
 {
 	struct pkgentry *pe;
-	char path[PATH_MAX];
 
 	pe = emalloc(sizeof(*pe));
-	estrlcpy(path, db->prefix, sizeof(path));
-	estrlcat(path, "/", sizeof(path));
-	estrlcat(path, file, sizeof(path));
-	estrlcpy(pe->path, path, sizeof(pe->path));
+	estrlcpy(pe->path, db->prefix, sizeof(pe->path));
+	estrlcat(pe->path, "/", sizeof(pe->path));
+	estrlcat(pe->path, file, sizeof(pe->path));
 	estrlcpy(pe->rpath, file, sizeof(pe->rpath));
 	return pe;
 }
