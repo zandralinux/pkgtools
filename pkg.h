@@ -89,6 +89,8 @@ int pkg_remove(struct db *, struct pkg *);
 int pkg_collisions(struct pkg *);
 struct pkg *pkg_new(const char *, const char *, const char *);
 void pkg_free(struct pkg *);
+struct pkgentry *pkgentry_new(struct db *, const char *);
+void pkgentry_free(struct pkgentry *);
 
 /* reject.c */
 void rej_free(struct db *);

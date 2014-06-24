@@ -49,12 +49,7 @@ pkg_load(struct db *db, const char *file)
 			return NULL;
 		}
 
-		pe = emalloc(sizeof(*pe));
-		estrlcpy(path, db->prefix, sizeof(path));
-		estrlcat(path, "/", sizeof(path));
-		estrlcat(path, buf, sizeof(path));
-		estrlcpy(pe->path, path, sizeof(pe->path));
-		estrlcpy(pe->rpath, buf, sizeof(pe->rpath));
+		pe = pkgentry_new(db, buf);
 		TAILQ_INSERT_TAIL(&pkg->pe_head, pe, entry);
 	}
 	free(buf);
@@ -124,12 +119,7 @@ pkg_load_file(struct db *db, const char *file)
 		if (tmp[0] == '\0')
 			continue;
 
-		pe = emalloc(sizeof(*pe));
-		estrlcpy(path, db->prefix, sizeof(path));
-		estrlcat(path, "/", sizeof(path));
-		estrlcat(path, tmp, sizeof(path));
-		estrlcpy(pe->path, path, sizeof(pe->path));
-		estrlcpy(pe->rpath, tmp, sizeof(pe->rpath));
+		pe = pkgentry_new(db, tmp);
 		TAILQ_INSERT_TAIL(&pkg->pe_head, pe, entry);
 	}
 
@@ -303,7 +293,6 @@ pkg_collisions(struct pkg *pkg)
 	return ok;
 }
 
-/* Create a new package instance */
 struct pkg *
 pkg_new(const char *path, const char *name, const char *version)
 {
@@ -320,7 +309,6 @@ pkg_new(const char *path, const char *name, const char *version)
 	return pkg;
 }
 
-/* Release package instance */
 void
 pkg_free(struct pkg *pkg)
 {
@@ -328,9 +316,30 @@ pkg_free(struct pkg *pkg)
 
 	for (pe = TAILQ_FIRST(&pkg->pe_head); pe; pe = tmp) {
 		tmp = TAILQ_NEXT(pe, entry);
-		free(pe);
+		pkgentry_free(pe);
 	}
 	free(pkg->name);
 	free(pkg->version);
 	free(pkg);
+}
+
+struct pkgentry *
+pkgentry_new(struct db *db, const char *file)
+{
+	struct pkgentry *pe;
+	char path[PATH_MAX];
+
+	pe = emalloc(sizeof(*pe));
+	estrlcpy(path, db->prefix, sizeof(path));
+	estrlcat(path, "/", sizeof(path));
+	estrlcat(path, file, sizeof(path));
+	estrlcpy(pe->path, path, sizeof(pe->path));
+	estrlcpy(pe->rpath, file, sizeof(pe->rpath));
+	return pe;
+}
+
+void
+pkgentry_free(struct pkgentry *pe)
+{
+	free(pe);
 }
