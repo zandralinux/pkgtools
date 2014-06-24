@@ -4,6 +4,7 @@ include config.mk
 .SUFFIXES: .c .o
 
 LIB = \
+	common.o  \
 	db.o      \
 	ealloc.o  \
 	eprintf.o \

@@ -57,6 +57,10 @@ extern int vflag;
 /* eprintf.c */
 extern char *argv0;
 
+/* common.c */
+void parse_version(const char *, char **);
+void parse_name(const char *, char **);
+
 /* db.c */
 struct db *db_new(const char *);
 int db_free(struct db *);
@@ -74,14 +78,6 @@ int pkg_collisions(struct pkg *);
 struct pkg *pkg_new(const char *, const char *, const char *);
 void pkg_free(struct pkg *);
 
-void parse_version(const char *, char **);
-void parse_name(const char *, char **);
-
-/* reject.c */
-void rej_free(struct db *);
-int rej_load(struct db *);
-int rej_match(struct db *, const char *);
-
 /* ealloc.c */
 void *ecalloc(size_t, size_t);
 void *emalloc(size_t size);
@@ -92,6 +88,11 @@ char *estrdup(const char *);
 void enprintf(int, const char *, ...);
 void eprintf(const char *, ...);
 void weprintf(const char *, ...);
+
+/* reject.c */
+void rej_free(struct db *);
+int rej_load(struct db *);
+int rej_match(struct db *, const char *);
 
 /* strlcat.c */
 #undef strlcat
