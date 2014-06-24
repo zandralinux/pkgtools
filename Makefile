@@ -8,6 +8,7 @@ LIB = \
 	db.o      \
 	ealloc.o  \
 	eprintf.o \
+	pkg.o     \
 	reject.o  \
 	strlcat.o \
 	strlcpy.o
