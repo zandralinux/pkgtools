@@ -127,6 +127,7 @@ db_rm(struct db *db, struct pkg *pkg)
 			return 0;
 		}
 	}
+	weprintf("internal error: package not found on rm list");
 	return -1;
 }
 
