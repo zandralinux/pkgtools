@@ -23,17 +23,15 @@
 #define ARCHIVEBUFSIZ BUFSIZ
 
 struct pkgentry {
-	/* full path */
-	char path[PATH_MAX];
-	/* relative path */
-	char rpath[PATH_MAX];
+	char path[PATH_MAX];		/* absolute path of package entry */
+	char rpath[PATH_MAX];		/* relative path of package entry */
 	TAILQ_ENTRY(pkgentry) entry;
 };
 
 struct pkg {
-	char *name;
-	char *version;
-	char path[PATH_MAX];
+	char *name;			/* package name */
+	char *version;			/* package version */
+	char path[PATH_MAX];		/* path to package in db or .pkg.tgz */
 	TAILQ_HEAD(pe_head, pkgentry) pe_head;
 	TAILQ_ENTRY(pkg) entry;
 };
@@ -44,9 +42,9 @@ struct rejrule {
 };
 
 struct db {
-	DIR *pkgdir;
-	char prefix[PATH_MAX];
-	char path[PATH_MAX];
+	DIR *pkgdir;			/* opendir() handle for DBPATH */
+	char prefix[PATH_MAX];		/* db prefix to allow for installation in a mountpoint */
+	char path[PATH_MAX];		/* absolute path to DBPATH including db prefix */
 	TAILQ_HEAD(rejrule_head, rejrule) rejrule_head;
 	TAILQ_HEAD(pkg_head, pkg) pkg_head;
 };
