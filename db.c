@@ -248,8 +248,7 @@ pkg_load(struct db *db, const char *filename)
 		estrlcpy(path, db->prefix, sizeof(path));
 		estrlcat(path, "/", sizeof(path));
 		estrlcat(path, buf, sizeof(path));
-		if(!realpath(path, pe->path))
-			estrlcpy(pe->path, path, sizeof(pe->path));
+		estrlcpy(pe->path, path, sizeof(pe->path));
 		estrlcpy(pe->rpath, buf, sizeof(pe->rpath));
 		TAILQ_INSERT_TAIL(&pkg->pe_head, pe, entry);
 	}
@@ -316,8 +315,7 @@ pkg_load_file(struct db *db, const char *filename)
 		estrlcat(path, "/", sizeof(path));
 		estrlcat(path, archive_entry_pathname(entry),
 			 sizeof(path));
-		if(!realpath(path, pe->path))
-			estrlcpy(pe->path, path, sizeof(pe->path));
+		estrlcpy(pe->path, path, sizeof(pe->path));
 		estrlcpy(pe->rpath, archive_entry_pathname(entry),
 			 sizeof(pe->rpath));
 		TAILQ_INSERT_TAIL(&pkg->pe_head, pe, entry);
