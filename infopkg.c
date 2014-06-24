@@ -83,7 +83,7 @@ own_pkg_cb(struct db *db, struct pkg *pkg, void *file)
 	if (lstat(path, &sb1) < 0)
 		eprintf("lstat %s:", path);
 
-	for (pe = pkg->head; pe; pe = pe->next) {
+	TAILQ_FOREACH(pe, &pkg->pe_head, entry) {
 		if (lstat(pe->path, &sb2) < 0) {
 			weprintf("lstat %s:", pe->path);
 			continue;

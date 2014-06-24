@@ -2,27 +2,27 @@
 
 #include <regex.h>
 #include <sys/types.h>
+#include "queue.h"
 
 struct pkgentry {
 	/* full path */
 	char path[PATH_MAX];
 	/* relative path */
 	char rpath[PATH_MAX];
-	struct pkgentry *next;
+	TAILQ_ENTRY(pkgentry) entry;
 };
 
 struct rejrule {
 	regex_t preg;
-	struct rejrule *next;
+	TAILQ_ENTRY(rejrule) entry;
 };
 
 struct pkg {
 	char *name;
 	char *version;
 	char path[PATH_MAX];
-	int deleted;
-	struct pkgentry *head;
-	struct pkg *next;
+	TAILQ_HEAD(pe_head, pkgentry) pe_head;
+	TAILQ_ENTRY(pkg) entry;
 };
 
 extern int fflag;
@@ -47,7 +47,6 @@ void pkg_free(struct pkg *);
 void parse_version(const char *, char **);
 void parse_name(const char *, char **);
 
-void rej_free(struct rejrule *);
-struct rejrule * rej_load(const char *);
+void rej_free(struct db *);
+int rej_load(struct db *);
 int rej_match(struct db *, const char *);
-struct rejrule * rej_load(const char *);

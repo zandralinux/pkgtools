@@ -24,8 +24,8 @@ struct db {
 	DIR *pkgdir;
 	char prefix[PATH_MAX];
 	char path[PATH_MAX];
-	struct rejrule *rejrules;
-	struct pkg *head;
+	TAILQ_HEAD(rejrule_head, rejrule) rejrule_head;
+	TAILQ_HEAD(pkg_head, pkg) pkg_head;
 };
 
 int fflag = 0;
@@ -39,7 +39,7 @@ db_new(const char *prefix)
 	struct sigaction sa;
 
 	db = emalloc(sizeof(*db));
-	db->head = NULL;
+	TAILQ_INIT(&db->pkg_head);
 
 	if (!realpath(prefix, db->prefix)) {
 		weprintf("realpath %s:", prefix);
@@ -57,7 +57,8 @@ db_new(const char *prefix)
 		return NULL;
 	}
 
-	db->rejrules = rej_load(db->prefix);
+	TAILQ_INIT(&db->rejrule_head);
+	rej_load(db);
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = SIG_IGN;
@@ -75,14 +76,12 @@ db_free(struct db *db)
 {
 	struct pkg *pkg, *tmp;
 
-	pkg = db->head;
-	while (pkg) {
-		tmp = pkg->next;
+	for (pkg = TAILQ_FIRST(&db->pkg_head); pkg; pkg = tmp) {
+		tmp = TAILQ_NEXT(pkg, entry);
 		pkg_free(pkg);
-		pkg = tmp;
 	}
 	closedir(db->pkgdir);
-	rej_free(db->rejrules);
+	rej_free(db);
 	free(db);
 	return 0;
 }
@@ -113,7 +112,7 @@ db_add(struct db *db, struct pkg *pkg)
 		return -1;
 	}
 
-	for (pe = pkg->head; pe; pe = pe->next) {
+	TAILQ_FOREACH(pe, &pkg->pe_head, entry) {
 		if (vflag == 1)
 			printf("installed %s\n", pe->path);
 		fputs(pe->rpath, fp);
@@ -134,8 +133,6 @@ db_add(struct db *db, struct pkg *pkg)
 int
 db_rm(struct pkg *pkg)
 {
-	if (pkg->deleted == 0)
-		return -1;
 	if (vflag == 1)
 		printf("removing %s\n", pkg->path);
 	if (remove(pkg->path) < 0) {
@@ -160,8 +157,7 @@ db_load(struct db *db)
 		pkg = pkg_load(db, dp->d_name);
 		if (!pkg)
 			return -1;
-		pkg->next = db->head;
-		db->head = pkg;
+		TAILQ_INSERT_TAIL(&db->pkg_head, pkg, entry);
 	}
 
 	return 0;
@@ -174,9 +170,7 @@ db_walk(struct db *db, int (*cb)(struct db *, struct pkg *, void *), void *data)
 	struct pkg *pkg;
 	int r;
 
-	for (pkg = db->head; pkg; pkg = pkg->next) {
-		if (pkg->deleted == 1)
-			continue;
+	TAILQ_FOREACH(pkg, &db->pkg_head, entry) {
 		r = cb(db, pkg, data);
 		if (r < 0)
 			return -1;
@@ -195,13 +189,10 @@ db_links(struct db *db, const char *path)
 	struct pkgentry *pe;
 	int links = 0;
 
-	for (pkg = db->head; pkg; pkg = pkg->next) {
-		if (pkg->deleted == 1)
-			continue;
-		for (pe = pkg->head; pe; pe = pe->next)
+	TAILQ_FOREACH(pkg, &db->pkg_head, entry)
+		TAILQ_FOREACH(pe, &pkg->pe_head, entry)
 			if (strcmp(pe->path, path) == 0)
 				links++;
-	}
 	return links;
 }
 
@@ -260,8 +251,7 @@ pkg_load(struct db *db, const char *filename)
 		if(!realpath(path, pe->path))
 			estrlcpy(pe->path, path, sizeof(pe->path));
 		estrlcpy(pe->rpath, buf, sizeof(pe->rpath));
-		pe->next = pkg->head;
-		pkg->head = pe;
+		TAILQ_INSERT_TAIL(&pkg->pe_head, pe, entry);
 	}
 	free(buf);
 	if (ferror(fp)) {
@@ -330,8 +320,7 @@ pkg_load_file(struct db *db, const char *filename)
 			estrlcpy(pe->path, path, sizeof(pe->path));
 		estrlcpy(pe->rpath, archive_entry_pathname(entry),
 			 sizeof(pe->rpath));
-		pe->next = pkg->head;
-		pkg->head = pe;
+		TAILQ_INSERT_TAIL(&pkg->pe_head, pe, entry);
 	}
 
 	archive_read_free(ar);
@@ -427,10 +416,7 @@ pkg_remove(struct db *db, struct pkg *pkg)
 	struct pkgentry *pe;
 	struct stat sb;
 
-	if (pkg->deleted == 1)
-		return 0;
-
-	for (pe = pkg->head; pe; pe = pe->next) {
+	TAILQ_FOREACH_REVERSE(pe, &pkg->pe_head, pe_head, entry) {
 		if (rej_match(db, pe->rpath) > 0) {
 			weprintf("rejecting %s\n", pe->rpath);
 			continue;
@@ -457,15 +443,13 @@ pkg_remove(struct db *db, struct pkg *pkg)
 
 		if (vflag == 1)
 			printf("removing %s\n", pe->path);
-		if (remove(pe->path) < 0) {
+		if (remove(pe->path) < 0)
 			weprintf("remove %s:", pe->path);
-			continue;
-		}
 	}
 
 	if (fflag == 1) {
 		/* prune empty directories as well */
-		for (pe = pkg->head; pe; pe = pe->next) {
+		TAILQ_FOREACH_REVERSE(pe, &pkg->pe_head, pe_head, entry) {
 			if (rej_match(db, pe->rpath) > 0)
 				continue;
 			if (db_links(db, pe->path) > 1)
@@ -474,7 +458,7 @@ pkg_remove(struct db *db, struct pkg *pkg)
 		}
 	}
 
-	pkg->deleted = 1;
+	TAILQ_REMOVE(&db->pkg_head, pkg, entry);
 
 	return 0;
 }
@@ -489,7 +473,7 @@ pkg_collisions(struct pkg *pkg)
 	struct stat sb;
 	int ok = 0;
 
-	for (pe = pkg->head; pe; pe = pe->next) {
+	TAILQ_FOREACH(pe, &pkg->pe_head, entry) {
 		if (access(pe->path, F_OK) == 0) {
 			if (stat(pe->path, &sb) < 0) {
 				weprintf("lstat %s:", pe->path);
@@ -521,9 +505,7 @@ pkg_new(const char *path, const char *name, const char *version)
 	else
 		pkg->version = NULL;
 	estrlcpy(pkg->path, path, sizeof(pkg->path));
-	pkg->deleted = 0;
-	pkg->head = NULL;
-	pkg->next = NULL;
+	TAILQ_INIT(&pkg->pe_head);
 	return pkg;
 }
 
@@ -533,11 +515,9 @@ pkg_free(struct pkg *pkg)
 {
 	struct pkgentry *pe, *tmp;
 
-	pe = pkg->head;
-	while (pe) {
-		tmp = pe->next;
+	for (pe = TAILQ_FIRST(&pkg->pe_head); pe; pe = tmp) {
+		tmp = TAILQ_NEXT(pe, entry);
 		free(pe);
-		pe = tmp;
 	}
 	free(pkg->name);
 	free(pkg->version);
@@ -609,23 +589,22 @@ err:
 
 /* Release the pre-loaded regexes */
 void
-rej_free(struct rejrule *list)
+rej_free(struct db *db)
 {
 	struct rejrule *rule, *tmp;
-	rule = list;
-	while(rule) {
-		tmp = rule->next;
-		regfree(&(rule->preg));
+
+	for (rule = TAILQ_FIRST(&db->rejrule_head); rule; rule = tmp) {
+		tmp = TAILQ_NEXT(rule, entry);
+		regfree(&rule->preg);
 		free(rule);
-		rule = tmp;
 	}
 }
 
 /* Parse reject.conf and pre-compute regexes */
-struct rejrule *
-rej_load(const char *prefix)
+int
+rej_load(struct db *db)
 {
-	struct rejrule *rule, *next, *list = NULL;
+	struct rejrule *rule;
 	char rejpath[PATH_MAX];
 	FILE *fp;
 	char *buf = NULL;
@@ -633,11 +612,11 @@ rej_load(const char *prefix)
 	ssize_t len;
 	int r;
 
-	estrlcpy(rejpath, prefix, sizeof(rejpath));
+	estrlcpy(rejpath, db->prefix, sizeof(rejpath));
 	estrlcat(rejpath, DBPATHREJECT, sizeof(rejpath));
 
 	if (!(fp = fopen(rejpath, "r")))
-		return NULL;
+		return -1;
 
 	while ((len = getline(&buf, &sz, fp)) != -1) {
 		if (!len || buf[0] == '#' || buf[0] == '\n')
@@ -647,7 +626,6 @@ rej_load(const char *prefix)
 
 		/* copy and add regex */
 		rule = emalloc(sizeof(*rule));
-		rule->next = NULL;
 
 		r = regcomp(&(rule->preg), buf, REG_NOSUB | REG_EXTENDED);
 		if (r != 0) {
@@ -655,27 +633,22 @@ rej_load(const char *prefix)
 			weprintf("invalid pattern: %s\n", buf);
 			free(buf);
 			fclose(fp);
-			rej_free(list);
-			return NULL;
+			rej_free(db);
+			return -1;
 		}
 
-		/* append to list: first item? or append to previous rule */
-		if (!list)
-			list = next = rule;
-		else
-			next->next = rule;
-		next = rule;
+		TAILQ_INSERT_TAIL(&db->rejrule_head, rule, entry);
 	}
 	free(buf);
 	if (ferror(fp)) {
 		weprintf("%s: read error:", rejpath);
 		fclose(fp);
-		rej_free(list);
-		return NULL;
+		rej_free(db);
+		return -1;
 	}
 	fclose(fp);
 
-	return list;
+	return 0;
 }
 
 /* Match pre-computed regexes against the given filename */
@@ -688,8 +661,8 @@ rej_match(struct db *db, const char *file)
 	if (strncmp(file, "./", 2) == 0)
 		file++;
 
-	for(rule = db->rejrules; rule; rule = rule->next) {
-		if (regexec(&(rule->preg), file, 0, NULL, 0) != REG_NOMATCH)
+	TAILQ_FOREACH(rule, &db->rejrule_head, entry) {
+		if (regexec(&rule->preg, file, 0, NULL, 0) != REG_NOMATCH)
 			return 1;
 	}
 
