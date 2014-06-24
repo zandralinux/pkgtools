@@ -71,10 +71,6 @@ rej_match(struct db *db, const char *file)
 {
 	struct rejrule *rule;
 
-	/* Skip initial '.' of "./" */
-	if (strncmp(file, "./", 2) == 0)
-		file++;
-
 	TAILQ_FOREACH(rule, &db->rejrule_head, entry)
 		if (regexec(&rule->preg, file, 0, NULL, 0) != REG_NOMATCH)
 			return 1;

@@ -73,6 +73,7 @@ struct pkg *
 pkg_load_file(struct db *db, const char *file)
 {
 	char path[PATH_MAX];
+	const char *tmp;
 	char *name, *version;
 	struct pkg *pkg;
 	struct pkgentry *pe;
@@ -115,14 +116,20 @@ pkg_load_file(struct db *db, const char *file)
 			pkg_free(pkg);
 			return NULL;
 		}
+
+		tmp = archive_entry_pathname(entry);
+		if (strncmp(tmp, "./", 2) == 0)
+			tmp += 2;
+
+		if (tmp[0] == '\0')
+			continue;
+
 		pe = emalloc(sizeof(*pe));
 		estrlcpy(path, db->prefix, sizeof(path));
 		estrlcat(path, "/", sizeof(path));
-		estrlcat(path, archive_entry_pathname(entry),
-			 sizeof(path));
+		estrlcat(path, tmp, sizeof(path));
 		estrlcpy(pe->path, path, sizeof(pe->path));
-		estrlcpy(pe->rpath, archive_entry_pathname(entry),
-			 sizeof(pe->rpath));
+		estrlcpy(pe->rpath, tmp, sizeof(pe->rpath));
 		TAILQ_INSERT_TAIL(&pkg->pe_head, pe, entry);
 	}
 
