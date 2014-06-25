@@ -68,7 +68,8 @@ pkg_remove_cb(struct db *db, struct pkg *pkg, void *name)
 	if (strcmp(pkg->name, name) == 0) {
 		if (pkg_remove(db, pkg) < 0)
 			return -1;
-		db_rm(db, pkg);
+		if (db_rm(db, pkg) < 0)
+			return -1;
 		printf("removed %s\n", pkg->name);
 		return 1;
 	}

@@ -55,6 +55,8 @@ main(int argc, char *argv[])
 		if (vflag == 1)
 			printf("installing %s\n", path);
 		pkg = pkg_load_file(db, path);
+		if (!pkg)
+			continue;
 		if (fflag == 0) {
 			if (pkg_collisions(pkg) < 0) {
 				db_free(db);
@@ -62,8 +64,10 @@ main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 		}
-		db_add(db, pkg);
-		pkg_install(db, pkg);
+		if (db_add(db, pkg) < 0)
+			continue;
+		if (pkg_install(db, pkg) < 0)
+			continue;
 		printf("installed %s\n", path);
 	}
 
