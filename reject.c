@@ -1,7 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 #include "pkg.h"
 
-/* Release the pre-loaded regexes */
+/* Release pre-computed regexes */
 void
 rej_free(struct db *db)
 {
@@ -65,7 +65,7 @@ rej_load(struct db *db)
 	return 0;
 }
 
-/* Match pre-computed regexes against the given filename */
+/* Match pre-computed regexes against the given file */
 int
 rej_match(struct db *db, const char *file)
 {
