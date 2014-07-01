@@ -19,7 +19,7 @@ main(int argc, char *argv[])
 	struct pkg *pkg;
 	char path[PATH_MAX];
 	char *prefix = "/";
-	int i, r;
+	int i;
 
 	ARGBEGIN {
 	case 'v':
@@ -41,8 +41,7 @@ main(int argc, char *argv[])
 	db = db_new(prefix);
 	if (!db)
 		exit(EXIT_FAILURE);
-	r = db_load(db);
-	if (r < 0) {
+	if (db_load(db) < 0) {
 		db_free(db);
 		exit(EXIT_FAILURE);
 	}
@@ -50,28 +49,34 @@ main(int argc, char *argv[])
 	for (i = 0; i < argc; i++) {
 		if (!realpath(argv[i], path)) {
 			weprintf("realpath %s:", argv[i]);
-			continue;
+			db_free(db);
+			exit(EXIT_FAILURE);
 		}
 		if (vflag == 1)
 			printf("installing %s\n", path);
 		pkg = pkg_load_file(db, path);
-		if (!pkg)
-			continue;
+		if (!pkg) {
+			db_free(db);
+			exit(EXIT_FAILURE);
+		}
 		if (fflag == 0) {
 			if (pkg_collisions(pkg) < 0) {
-				db_free(db);
 				printf("not installed %s\n", path);
+				db_free(db);
 				exit(EXIT_FAILURE);
 			}
 		}
-		if (db_add(db, pkg) < 0)
-			continue;
-		if (pkg_install(db, pkg) < 0)
-			continue;
+		if (db_add(db, pkg) < 0) {
+			db_free(db);
+			exit(EXIT_FAILURE);
+		}
+		if (pkg_install(db, pkg) < 0) {
+			db_free(db);
+			exit(EXIT_FAILURE);
+		}
 		printf("installed %s\n", path);
 	}
 
 	db_free(db);
-
 	return EXIT_SUCCESS;
 }

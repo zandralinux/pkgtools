@@ -48,7 +48,8 @@ main(int argc, char *argv[])
 	for (i = 0; i < argc; i++) {
 		if (!realpath(argv[i], path)) {
 			weprintf("realpath %s:", argv[i]);
-			continue;
+			db_free(db);
+			exit(EXIT_FAILURE);
 		}
 		r = db_walk(db, own_pkg_cb, path);
 		if (r < 0) {
