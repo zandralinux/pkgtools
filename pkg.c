@@ -1,7 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 #include "pkg.h"
 
-/* Create a package from the given db entry.  e.g. /var/pkg/pkg#version */
+/* Create a package from the db entry.  e.g. /var/pkg/pkg#version */
 struct pkg *
 pkg_load(struct db *db, const char *file)
 {
@@ -130,7 +130,6 @@ pkg_load_file(struct db *db, const char *file)
 	return pkg;
 }
 
-/* Install the given package */
 int
 pkg_install(struct db *db, struct pkg *pkg)
 {
@@ -215,7 +214,6 @@ rm_empty_dir(const char *f, const struct stat *sb, int typeflag,
 	return 0;
 }
 
-/* Remove the package entries for the given package */
 int
 pkg_remove(struct db *db, struct pkg *pkg)
 {
@@ -270,7 +268,7 @@ pkg_remove(struct db *db, struct pkg *pkg)
 	return 0;
 }
 
-/* Check if the contents of the given package
+/* Check if the file entries of the package
  * collide with corresponding entries in the filesystem */
 int
 pkg_collisions(struct pkg *pkg)

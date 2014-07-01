@@ -4,7 +4,6 @@
 int fflag = 0;
 int vflag = 0;
 
-/* Initialize the db context */
 struct db *
 db_new(const char *prefix)
 {
@@ -44,7 +43,6 @@ db_new(const char *prefix)
 	return db;
 }
 
-/* Free the db context and release resources */
 int
 db_free(struct db *db)
 {
@@ -66,7 +64,6 @@ db_free(struct db *db)
 	return 0;
 }
 
-/* Update the db entry on disk for the given package */
 int
 db_add(struct db *db, struct pkg *pkg)
 {
@@ -109,7 +106,6 @@ db_add(struct db *db, struct pkg *pkg)
 	return 0;
 }
 
-/* Physically unlink the db entry for the given package */
 int
 db_rm(struct db *db, struct pkg *pkg)
 {
@@ -131,7 +127,6 @@ db_rm(struct db *db, struct pkg *pkg)
 	return -1;
 }
 
-/* Load all packages in the db */
 int
 db_load(struct db *db)
 {
