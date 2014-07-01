@@ -16,7 +16,6 @@ pkg_load(struct db *db, const char *file)
 
 	parse_db_name(file, &name);
 	parse_db_version(file, &version);
-
 	estrlcpy(path, db->path, sizeof(path));
 	estrlcat(path, "/", sizeof(path));
 	estrlcat(path, name, sizeof(path));
@@ -24,7 +23,6 @@ pkg_load(struct db *db, const char *file)
 		estrlcat(path, "#", sizeof(path));
 		estrlcat(path, version, sizeof(path));
 	}
-
 	pkg = pkg_new(path, name, version);
 	free(name);
 	free(version);
@@ -50,14 +48,18 @@ pkg_load(struct db *db, const char *file)
 		pe = pkgentry_new(db, buf);
 		TAILQ_INSERT_TAIL(&pkg->pe_head, pe, entry);
 	}
-	free(buf);
+
 	if (ferror(fp)) {
 		weprintf("%s: read error:", pkg->name);
+		free(buf);
 		fclose(fp);
 		pkg_free(pkg);
 		return NULL;
 	}
+
+	free(buf);
 	fclose(fp);
+
 	return pkg;
 }
 
@@ -65,13 +67,13 @@ pkg_load(struct db *db, const char *file)
 struct pkg *
 pkg_load_file(struct db *db, const char *file)
 {
-	char path[PATH_MAX];
-	const char *tmp;
-	char *name, *version;
 	struct pkg *pkg;
 	struct pkgentry *pe;
 	struct archive *ar;
 	struct archive_entry *entry;
+	char path[PATH_MAX];
+	const char *tmp;
+	char *name, *version;
 	int r;
 
 	if (!realpath(file, path)) {
@@ -95,6 +97,7 @@ pkg_load_file(struct db *db, const char *file)
 	if (archive_read_open_filename(ar, pkg->path, ARCHIVEBUFSIZ) < 0) {
 		weprintf("archive_read_open_filename %s: %s\n", pkg->path,
 			 archive_error_string(ar));
+		archive_read_free(ar);
 		pkg_free(pkg);
 		return NULL;
 	}
@@ -106,6 +109,7 @@ pkg_load_file(struct db *db, const char *file)
 		if (r != ARCHIVE_OK) {
 			weprintf("archive_read_next_header: %s\n",
 				 archive_error_string(ar));
+			archive_read_free(ar);
 			pkg_free(pkg);
 			return NULL;
 		}
@@ -130,9 +134,9 @@ pkg_load_file(struct db *db, const char *file)
 int
 pkg_install(struct db *db, struct pkg *pkg)
 {
-	char cwd[PATH_MAX];
 	struct archive *ar;
 	struct archive_entry *entry;
+	char cwd[PATH_MAX];
 	int flags, r;
 
 	ar = archive_read_new();
@@ -145,15 +149,18 @@ pkg_install(struct db *db, struct pkg *pkg)
 	if (archive_read_open_filename(ar, pkg->path, ARCHIVEBUFSIZ) < 0) {
 		weprintf("archive_read_open_filename %s: %s\n", pkg->path,
 			 archive_error_string(ar));
+		archive_read_free(ar);
 		return -1;
 	}
 
 	if (!getcwd(cwd, sizeof(cwd))) {
 		weprintf("getcwd:");
+		archive_read_free(ar);
 		return -1;
 	}
 	if (chdir(db->prefix) < 0) {
 		weprintf("chdir %s:", db->prefix);
+		archive_read_free(ar);
 		return -1;
 	}
 
@@ -166,6 +173,7 @@ pkg_install(struct db *db, struct pkg *pkg)
 				 archive_entry_pathname(entry), archive_error_string(ar));
 			if (chdir(cwd) < 0)
 				weprintf("chdir %s:", cwd);
+			archive_read_free(ar);
 			return -1;
 		}
 		if (rej_match(db, archive_entry_pathname(entry)) > 0) {
@@ -267,9 +275,9 @@ pkg_remove(struct db *db, struct pkg *pkg)
 int
 pkg_collisions(struct pkg *pkg)
 {
-	char resolvedpath[PATH_MAX];
 	struct pkgentry *pe;
 	struct stat sb;
+	char resolvedpath[PATH_MAX];
 	int ok = 0;
 
 	TAILQ_FOREACH(pe, &pkg->pe_head, entry) {
