@@ -5,21 +5,17 @@
 struct pkg *
 pkg_load(struct db *db, const char *file)
 {
-	char path[PATH_MAX], tmp[PATH_MAX], *p;
-	char *name, *version;
 	struct pkg *pkg;
 	struct pkgentry *pe;
 	FILE *fp;
+	char path[PATH_MAX];
+	char *name, *version;
 	char *buf = NULL;
 	size_t sz = 0;
 	ssize_t len;
 
-	estrlcpy(tmp, file, sizeof(tmp));
-	p = strchr(tmp, '#');
-	if (p)
-		*p = '\0';
-	name = tmp;
-	version = p ? p + 1 : NULL;
+	parse_db_name(file, &name);
+	parse_db_version(file, &version);
 
 	estrlcpy(path, db->path, sizeof(path));
 	estrlcat(path, "/", sizeof(path));
@@ -30,6 +26,8 @@ pkg_load(struct db *db, const char *file)
 	}
 
 	pkg = pkg_new(path, name, version);
+	free(name);
+	free(version);
 
 	if (!(fp = fopen(pkg->path, "r"))) {
 		weprintf("fopen %s:", pkg->path);

@@ -58,8 +58,10 @@ extern int vflag;
 extern char *argv0;
 
 /* common.c */
-void parse_version(const char *, char **);
+void parse_db_name(const char *, char **);
+void parse_db_version(const char *, char **);
 void parse_name(const char *, char **);
+void parse_version(const char *, char **);
 
 /* db.c */
 struct db *db_new(const char *);

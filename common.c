@@ -63,3 +63,30 @@ err:
 	eprintf("%s: invalid package filename\n",
 		path);
 }
+
+void
+parse_db_name(const char *path, char **name)
+{
+	char tmp[PATH_MAX], *p;
+
+	estrlcpy(tmp, path, sizeof(tmp));
+	p = strchr(tmp, '#');
+	if (p)
+		*p = '\0';
+	*name = estrdup(tmp);
+}
+
+void
+parse_db_version(const char *path, char **version)
+{
+	char tmp[PATH_MAX], *p;
+
+	estrlcpy(tmp, path, sizeof(tmp));
+	p = strchr(tmp, '#');
+	if (p)
+		*p = '\0';
+	if (p)
+		*version = estrdup(p + 1);
+	else
+		*version = NULL;
+}
