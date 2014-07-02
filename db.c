@@ -109,22 +109,16 @@ db_add(struct db *db, struct pkg *pkg)
 int
 db_rm(struct db *db, struct pkg *pkg)
 {
-	struct pkg *tmp;
+	(void) db;
 
-	TAILQ_FOREACH(tmp, &db->pkg_rm_head, entry) {
-		if (strcmp(tmp->name, pkg->name) == 0) {
-			if (vflag == 1)
-				printf("removing %s\n", pkg->path);
-			if (remove(pkg->path) < 0) {
-				weprintf("remove %s:", pkg->path);
-				return -1;
-			}
-			sync();
-			return 0;
-		}
+	if (vflag == 1)
+		printf("removing %s\n", pkg->path);
+	if (remove(pkg->path) < 0) {
+		weprintf("remove %s:", pkg->path);
+		return -1;
 	}
-	weprintf("internal error: package not found on rm list");
-	return -1;
+	sync();
+	return 0;
 }
 
 int
