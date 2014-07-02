@@ -276,7 +276,7 @@ pkg_collisions(struct pkg *pkg)
 	struct pkgentry *pe;
 	struct stat sb;
 	char resolvedpath[PATH_MAX];
-	int ok = 0;
+	int r = 0;
 
 	TAILQ_FOREACH(pe, &pkg->pe_head, entry) {
 		if (access(pe->path, F_OK) == 0) {
@@ -289,12 +289,12 @@ pkg_collisions(struct pkg *pkg)
 					weprintf("%s exists\n", resolvedpath);
 				else
 					weprintf("%s exists\n", pe->path);
-				ok = -1;
+				r = -1;
 			}
 		}
 	}
 
-	return ok;
+	return r;
 }
 
 struct pkg *
