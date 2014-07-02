@@ -18,7 +18,7 @@ main(int argc, char *argv[])
 {
 	struct db *db;
 	char path[PATH_MAX];
-	char *prefix = "/";
+	char *root = "/";
 	int oflag = 0;
 	int i, r;
 
@@ -27,7 +27,7 @@ main(int argc, char *argv[])
 		oflag = 1;
 		break;
 	case 'r':
-		prefix = ARGF();
+		root = ARGF();
 		break;
 	default:
 		usage();
@@ -36,7 +36,7 @@ main(int argc, char *argv[])
 	if (oflag == 0 || argc < 1)
 		usage();
 
-	db = db_new(prefix);
+	db = db_new(root);
 	if (!db)
 		exit(EXIT_FAILURE);
 	r = db_load(db);

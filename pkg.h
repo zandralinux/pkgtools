@@ -43,8 +43,8 @@ struct rejrule {
 
 struct db {
 	DIR *pkgdir;			/* opendir() handle for DBPATH */
-	char prefix[PATH_MAX];		/* db prefix to allow for installation in a mountpoint */
-	char path[PATH_MAX];		/* absolute path to DBPATH including db prefix */
+	char root[PATH_MAX];		/* db root to allow for installation in a mountpoint */
+	char path[PATH_MAX];		/* absolute path to DBPATH including db root */
 	TAILQ_HEAD(rejrule_head, rejrule) rejrule_head;
 	TAILQ_HEAD(pkg_head, pkg) pkg_head;
 	TAILQ_HEAD(pkg_rm_head, pkg) pkg_rm_head;

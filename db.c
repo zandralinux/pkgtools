@@ -5,7 +5,7 @@ int fflag = 0;
 int vflag = 0;
 
 struct db *
-db_new(const char *prefix)
+db_new(const char *root)
 {
 	struct db *db;
 	struct sigaction sa;
@@ -14,13 +14,13 @@ db_new(const char *prefix)
 	TAILQ_INIT(&db->pkg_head);
 	TAILQ_INIT(&db->pkg_rm_head);
 
-	if (!realpath(prefix, db->prefix)) {
-		weprintf("realpath %s:", prefix);
+	if (!realpath(root, db->root)) {
+		weprintf("realpath %s:", root);
 		free(db);
 		return NULL;
 	}
 
-	estrlcpy(db->path, db->prefix, sizeof(db->path));
+	estrlcpy(db->path, db->root, sizeof(db->path));
 	estrlcat(db->path, DBPATH, sizeof(db->path));
 
 	db->pkgdir = opendir(db->path);

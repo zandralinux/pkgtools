@@ -18,7 +18,7 @@ int
 main(int argc, char *argv[])
 {
 	struct db *db;
-	char *prefix = "/";
+	char *root = "/";
 	int i, r;
 
 	ARGBEGIN {
@@ -29,7 +29,7 @@ main(int argc, char *argv[])
 		fflag = 1;
 		break;
 	case 'r':
-		prefix = ARGF();
+		root = ARGF();
 		break;
 	default:
 		usage();
@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 	if (argc < 1)
 		usage();
 
-	db = db_new(prefix);
+	db = db_new(root);
 	if (!db)
 		exit(EXIT_FAILURE);
 	r = db_load(db);

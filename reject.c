@@ -25,7 +25,7 @@ rej_load(struct db *db)
 	ssize_t len;
 	int r;
 
-	estrlcpy(rejpath, db->prefix, sizeof(rejpath));
+	estrlcpy(rejpath, db->root, sizeof(rejpath));
 	estrlcat(rejpath, DBPATHREJECT, sizeof(rejpath));
 
 	if (!(fp = fopen(rejpath, "r")))

@@ -157,8 +157,8 @@ pkg_install(struct db *db, struct pkg *pkg)
 		archive_read_free(ar);
 		return -1;
 	}
-	if (chdir(db->prefix) < 0) {
-		weprintf("chdir %s:", db->prefix);
+	if (chdir(db->root) < 0) {
+		weprintf("chdir %s:", db->root);
 		archive_read_free(ar);
 		return -1;
 	}
@@ -333,7 +333,7 @@ pkgentry_new(struct db *db, const char *file)
 	struct pkgentry *pe;
 
 	pe = emalloc(sizeof(*pe));
-	estrlcpy(pe->path, db->prefix, sizeof(pe->path));
+	estrlcpy(pe->path, db->root, sizeof(pe->path));
 	estrlcat(pe->path, "/", sizeof(pe->path));
 	estrlcat(pe->path, file, sizeof(pe->path));
 	estrlcpy(pe->rpath, file, sizeof(pe->rpath));
