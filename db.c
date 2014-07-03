@@ -50,11 +50,13 @@ db_free(struct db *db)
 
 	for (pkg = TAILQ_FIRST(&db->pkg_head); pkg; pkg = tmp) {
 		tmp = TAILQ_NEXT(pkg, entry);
+		TAILQ_REMOVE(&db->pkg_head, pkg, entry);
 		pkg_free(pkg);
 	}
 
 	for (pkg = TAILQ_FIRST(&db->pkg_rm_head); pkg; pkg = tmp) {
 		tmp = TAILQ_NEXT(pkg, entry);
+		TAILQ_REMOVE(&db->pkg_rm_head, pkg, entry);
 		pkg_free(pkg);
 	}
 

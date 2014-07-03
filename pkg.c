@@ -320,6 +320,7 @@ pkg_free(struct pkg *pkg)
 
 	for (pe = TAILQ_FIRST(&pkg->pe_head); pe; pe = tmp) {
 		tmp = TAILQ_NEXT(pe, entry);
+		TAILQ_REMOVE(&pkg->pe_head, pe, entry);
 		pkgentry_free(pe);
 	}
 	free(pkg->name);
