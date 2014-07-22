@@ -13,8 +13,8 @@
 #include <sys/types.h>
 #include <sys/file.h>
 #include <unistd.h>
-#include "queue.h"
 #include "arg.h"
+#include "queue.h"
 
 #define LEN(x) (sizeof (x) / sizeof *(x))
 
