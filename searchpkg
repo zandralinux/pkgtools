@@ -3,7 +3,7 @@
 # To list all packages in the mirror try searchpkg "\.tgz$"
 # To download packages try searchpkg pkg... | fetchpkg
 
-release=0.0
+release=0.0-testing
 arch=x86_64
 mirror="http://zandra.xyz/pkgs/$release/packages/$arch"
 
