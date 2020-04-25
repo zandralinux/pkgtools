@@ -5,7 +5,7 @@
 
 release=0.0
 arch=x86_64
-mirror="http://morpheus.2f30.org/$release/packages/$arch"
+mirror="http://zandra.xyz/pkgs/$release/packages/$arch"
 
 usage() {
 	echo "usage: $(basename $0) pkg..." 1>&2
