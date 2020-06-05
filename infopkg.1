@@ -1,0 +1,23 @@
+.Dd 2020-06-04
+.Dt INFOPKG 1
+.Os pkgtools
+.Sh NAME
+.Nm infopkg
+.Nd see what package owns a file
+.Sh SYNOPSIS
+.Nm
+.Op Fl r Ar path
+.Op Fl o Ar filename...
+.Sh DESCRIPTION
+.Nm
+shows what package owns each given file.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl r Ar path
+Set alternative installation root.
+.It Fl o Ar filename...
+Look for the packages that own the given filename(s).
+.El
+.Sh SEE ALSO
+.Xr installpkg 1 ,
+.Xr removepkg 1

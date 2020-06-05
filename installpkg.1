@@ -1,0 +1,37 @@
+.Dd 2020-06-04
+.Dt INSTALLPKG 1
+.Os pkgtools
+.Sh NAME
+.Nm installpkg
+.Nd install packages to the system
+.Sh SYNOPSIS
+.Nm
+.Op Fl v
+.Op Fl f
+.Op Fl r Ar path
+.Sh DESCRIPTION
+.Nm
+installs packages to the system using package archives already present
+on the system.
+.Sh OPTIONS
+.Bl -tag -width Ds
+.It Fl v
+Enable verbose output.
+.It Fl f
+Override filesystem checks and force installation.
+.It Fl r Ar path
+Set alternative installation root.
+.El
+.Sh EXAMPLES
+.Bd -literal
+# search for, fetch, and install the package "foo"
+searchpkg '^foo#.*' | fetchpkg
+installpkg 'foo#*.pkg.tgz'
+
+# install package "bar" to alternative root at "/mnt/other_root"
+installpkg -r /mnt/other_root 'bar#*.pkg.tgz'
+.Ed
+.Sh SEE ALSO
+.Xr fetchpkg 1 ,
+.Xr searchpkg 1 ,
+.Xr removepkg 1
