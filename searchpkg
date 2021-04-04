@@ -3,9 +3,9 @@
 # To list all packages in the mirror try searchpkg "\.tgz$"
 # To download packages try searchpkg pkg... | fetchpkg
 
-[ -z "$release" ] && release='0.0-testing'
+[ -z "$release" ] && release='0.0'
 [ -z "$arch" ] && arch='x86_64'
-mirror="http://zandra.xyz/pkg/$release/$arch"
+mirror="http://zandra.org/pkg/$release/$arch"
 
 usage() {
 	echo "usage: $(basename $0) pkg..." 1>&2
