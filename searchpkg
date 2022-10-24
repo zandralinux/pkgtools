@@ -5,7 +5,7 @@
 
 [ -z "$release" ] && release='0.0'
 [ -z "$arch" ] && arch='x86_64'
-mirror="http://zandra.org/pkg/$release/$arch"
+mirror="http://zandra.org/ports/$release/$arch"
 
 usage() {
 	echo "usage: $(basename $0) pkg..." 1>&2
