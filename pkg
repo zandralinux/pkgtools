@@ -1,0 +1,32 @@
+#!/bin/sh
+
+cmd=$1
+args=$(echo $@ | sed 's/^.* //')
+
+install_pkgs() {
+	tmpdir="$(mktemp -d)"
+	cd $tmpdir
+	searchpkg $args | fetchpkg
+	for pkg in $args; do
+		installpkg $pkg
+	done
+	rm -rf $tmpdir
+}
+remove_pkgs() {
+	for pkg in $args; do
+		removepkg $pkg
+	done
+}
+search_pkgs() {
+	for pkg in $args; do
+		searchpkg "^$pkg#" | awk -F '/' '{print $NF}' | sed 's/%23/ /;s/.pkg.tgz//'
+	done
+}
+
+case $cmd in
+	install) install_pkgs ;;
+	update) install_pkgs ;;
+	remove) remove_pkgs ;;
+	search) search_pkgs ;;
+	*) echo "invalid command" ;;
+esac
