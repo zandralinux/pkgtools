@@ -61,3 +61,13 @@ uninstall:
 clean:
 	@echo cleaning
 	@rm -f $(BIN) $(OBJ) $(LIB) util.a
+
+dist:
+	@mkdir -p pkgtools-$(VERSION)
+	@cp -rf LICENSE Makefile README.md $(SRC) $(SHPROG) $(LIB:.o=.c) *.1 pkgtools-$(VERSION)
+	@tar -cf pkgtools-$(VERSION).tar pkgtools-$(VERSION)
+	@gzip pkgtools-$(VERSION).tar
+	@rm -rf pkgtools-$(VERSION)
+
+distclean: clean
+	@rm -f pkgtools-$(VERSION).tar.gz
