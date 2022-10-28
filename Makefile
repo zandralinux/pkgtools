@@ -20,7 +20,8 @@ SRC = \
 
 SHPROG = \
 	fetchpkg     \
-	searchpkg
+	searchpkg    \
+	pkg
 
 OBJ = $(SRC:.c=.o) $(LIB)
 BIN = $(SRC:.c=)
